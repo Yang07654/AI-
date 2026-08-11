@@ -192,7 +192,7 @@ export default function AuditDataPage() {
         fixed: 'left',
         render: (_, record) => (
           <Space size={0}>
-            <Button type="link" onClick={() => setCurrent(record)}>
+            <Button type="link">
               详情
             </Button>
             <Dropdown
