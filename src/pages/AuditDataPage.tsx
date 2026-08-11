@@ -45,6 +45,27 @@ const fieldDetailContent: Record<string, { sku: string; omall: string }> = {
   productLink: { sku: '--', omall: '--' },
 };
 
+const pageVisualDetailFields = pageVisualCheckTypes.map((name, index) => ({
+  key: name,
+  name,
+  number: ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩', '⑪', '⑫'][index],
+}));
+
+const pageVisualDetailContent: Record<string, { sku: string; omall: string }> = {
+  图片完整性: { sku: '页面图片需完整展示，不可缺失、遮挡或加载异常', omall: '图片完整展示' },
+  图片质量: { sku: '图片需清晰，无明显模糊、压缩、噪点问题', omall: '图片质量正常' },
+  '图片尺寸/比例': { sku: '尺寸比例需符合页面视觉规范', omall: '尺寸比例符合规范' },
+  '商品/主体展示': { sku: '商品或页面主体需突出展示', omall: '主体展示清晰' },
+  图片内容合规: { sku: '图片内容不得包含违规元素', omall: '图片内容合规' },
+  语言书写错误检查: { sku: '页面文案不得存在拼写、语法或书写错误', omall: '语言书写正常' },
+  文案合规检查: { sku: '页面文案需符合广告宣传与平台规则', omall: '文案符合规则' },
+  本地化合规检查: { sku: '页面表达需符合当地语言与文化习惯', omall: '本地化表达正常' },
+  信息正确性检查: { sku: '价格、活动、商品等信息需准确一致', omall: '信息准确' },
+  视觉合规检查: { sku: '页面整体视觉需符合品牌规范', omall: '视觉符合规范' },
+  模块完整性: { sku: '页面模块需完整，不可缺失关键区域', omall: '模块完整' },
+  '排版/布局异常': { sku: '页面排版需整齐，无错位、重叠或异常留白', omall: '布局正常' },
+};
+
 type RiskDisplayItem = (RiskItem & { latestAuditTime: string }) | {
   id: string;
   fieldName: string;
@@ -442,9 +463,47 @@ export default function AuditDataPage() {
   }, [columns]);
 
   const pageVisualColumns: ColumnsType<AuditObject> = useMemo(() => {
-    const [actionColumn] = columns;
+    const pageActionColumn: ColumnsType<AuditObject>[number] = {
+      title: '操作',
+      width: 120,
+      align: 'center' as const,
+      fixed: 'left' as const,
+      render: (_, record) => (
+        <Space size={0}>
+          <Button type="link" onClick={() => setCurrent(record)}>
+            详情
+          </Button>
+          <Dropdown
+            trigger={['hover']}
+            menu={{
+              items: [
+                { key: 'review', label: '重新复核' },
+                { key: 'log', label: '查看日志' },
+              ],
+              onClick: ({ key }) => {
+                if (key === 'review') {
+                  Modal.confirm({
+                    title: '确认重新复核？',
+                    content: `将对「${record.name}」重新提交复核，确认继续吗？`,
+                    okText: '确认复核',
+                    cancelText: '取消',
+                    onOk: () => message.success(`已提交「${record.name}」重新复核`),
+                  });
+                  return;
+                }
+
+                message.info(`正在查看「${record.name}」的复核日志`);
+              },
+            }}
+          >
+            <Button type="text" size="small" icon={<MoreOutlined />} />
+          </Dropdown>
+        </Space>
+      ),
+    };
+
     return [
-      actionColumn,
+      pageActionColumn,
       {
         title: '基本信息',
         children: [
@@ -659,8 +718,18 @@ export default function AuditDataPage() {
     setProductCategory(undefined);
   };
 
-  // 详情页：商品视觉复核详情
+  // 详情页：视觉复核详情
   if (current) {
+    const detailFields = current.type === '页面' ? pageVisualDetailFields : productContentFields;
+    const getDetailStatus = (key: string) => (
+      current.type === '页面'
+        ? current.pageVisualStatus?.[key as keyof typeof current.pageVisualStatus]
+        : current.contentStatus?.[key as keyof typeof current.contentStatus]
+    );
+    const getDetailContent = (key: string) => (
+      current.type === '页面' ? pageVisualDetailContent[key] : fieldDetailContent[key]
+    );
+
     return (
       <Card
         title={
@@ -675,10 +744,10 @@ export default function AuditDataPage() {
         }
       >
         <div className="detail-card-grid">
-          {productContentFields.map((field) => {
-            const status = current.contentStatus?.[field.key];
+          {detailFields.map((field) => {
+            const status = getDetailStatus(field.key);
             const config = status ? contentStatusConfig[status] : null;
-            const detail = fieldDetailContent[field.key];
+            const detail = getDetailContent(field.key);
             const failureReason = status === 'abnormal'
               ? Object.values(current.risks).flat().find((risk) => risk.fieldName.includes(field.name))?.description || '当前字段复核失败，请检查商城与知识库内容是否一致。'
               : undefined;
