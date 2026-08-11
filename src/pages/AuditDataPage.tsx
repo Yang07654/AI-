@@ -680,7 +680,7 @@ export default function AuditDataPage() {
             const config = status ? contentStatusConfig[status] : null;
             const detail = fieldDetailContent[field.key];
             const failureReason = status === 'abnormal'
-              ? Object.values(current.risks).flat().find((risk) => risk.fieldName.includes(field.name))?.description
+              ? Object.values(current.risks).flat().find((risk) => risk.fieldName.includes(field.name))?.description || '当前字段复核失败，请检查商城与知识库内容是否一致。'
               : undefined;
 
             return (
