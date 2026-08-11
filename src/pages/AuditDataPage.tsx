@@ -30,11 +30,11 @@ function renderContentStatus(status: ContentStatus | undefined) {
 }
 
 const productContentFields = [
-  { key: 'productTitle' as const, name: '商品标题', number: '①' },
-  { key: 'productMainImage' as const, name: '商品主图', number: '②' },
-  { key: 'productSubtitle' as const, name: '商品副标题', number: '③' },
-  { key: 'productDetail' as const, name: '商品详情', number: '④' },
-  { key: 'productLink' as const, name: '商品链接', number: '⑤' },
+  { key: 'productTitle' as const, name: '商品标题', number: '1' },
+  { key: 'productMainImage' as const, name: '商品主图', number: '2' },
+  { key: 'productSubtitle' as const, name: '商品副标题', number: '3' },
+  { key: 'productDetail' as const, name: '商品详情', number: '4' },
+  { key: 'productLink' as const, name: '商品链接', number: '5' },
 ];
 
 const fieldDetailContent: Record<string, { sku: string; omall: string }> = {
@@ -48,7 +48,7 @@ const fieldDetailContent: Record<string, { sku: string; omall: string }> = {
 const pageVisualDetailFields = pageVisualCheckTypes.map((name, index) => ({
   key: name,
   name,
-  number: ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩', '⑪', '⑫'][index],
+  number: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'][index],
 }));
 
 const pageVisualDetailContent: Record<string, { sku: string; omall: string }> = {
@@ -770,7 +770,7 @@ export default function AuditDataPage() {
                   </div>
                   <div className="detail-card-row">
                     <span className="detail-card-label">知识库:</span>
-                    <Typography.Text style={{ color: config?.color }}>{detail.omall}</Typography.Text>
+                    <Typography.Text style={{ color: '#52c41a' }}>{detail.omall}</Typography.Text>
                   </div>
                   {failureReason && (
                     <div className="detail-card-row detail-card-reason">

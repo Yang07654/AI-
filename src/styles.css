@@ -193,59 +193,63 @@ body {
 .detail-card-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 24px 32px;
+  gap: 16px;
 }
 
 .detail-card-item {
   min-width: 0;
+  border: 1px solid #e8e8e8;
+  background: #fff;
+  padding: 16px;
 }
 
 .detail-card-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: 6px;
+  margin-bottom: 12px;
 }
 
 .detail-card-number {
   display: inline-flex;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   align-items: center;
   justify-content: center;
+  border: 1px solid #434343;
   border-radius: 50%;
-  background: #000;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 700;
+  background: #fff;
+  color: #262626;
+  font-size: 11px;
+  font-weight: 400;
   flex-shrink: 0;
 }
 
 .detail-card-status {
   margin-left: auto;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 400;
 }
 
 .detail-card-body {
-  padding-left: 28px;
+  padding-left: 0;
 }
 
 .detail-card-row {
   display: flex;
-  gap: 6px;
-  padding: 3px 0;
-  font-size: 13px;
+  gap: 4px;
+  padding: 2px 0;
+  font-size: 12px;
   line-height: 1.6;
 }
 
 .detail-card-label {
   flex: 0 0 auto;
-  color: #000;
+  color: #262626;
   font-weight: 400;
 }
 
 .detail-card-reason {
-  padding-top: 6px;
+  padding-top: 4px;
   margin-top: 4px;
 }
