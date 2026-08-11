@@ -1,4 +1,4 @@
-import { ArrowLeftOutlined, CheckSquareFilled, CloseOutlined, CopyOutlined, MinusOutlined, MoreOutlined, QuestionOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, CheckCircleFilled, CloseOutlined, CopyOutlined, MinusOutlined, MoreOutlined, QuestionCircleFilled } from '@ant-design/icons';
 import { Button, Card, Collapse, Divider, Dropdown, Empty, Input, Modal, Select, Space, Table, Tabs, Tag, Tooltip, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { Key, ReactNode } from 'react';
@@ -16,11 +16,11 @@ const associationTypeColorMap: Record<AssociationType, string> = {
   关联OMALL主商品: 'green',
 };
 
-const contentStatusConfig: Record<ContentStatus, { icon: ReactNode; label: string }> = {
-  normal: { icon: <CheckSquareFilled style={{ color: '#52c41a', fontSize: 18 }} />, label: '正常' },
-  abnormal: { icon: <CloseOutlined style={{ color: '#ff4d4f', fontSize: 18 }} />, label: '异常' },
-  unknown: { icon: <QuestionOutlined style={{ color: '#8c8c8c', fontSize: 18 }} />, label: '未知' },
-  empty: { icon: <MinusOutlined style={{ color: '#8c8c8c', fontSize: 18 }} />, label: '无' },
+const contentStatusConfig: Record<ContentStatus, { icon: ReactNode; label: string; color: string }> = {
+  normal: { icon: <CheckCircleFilled style={{ color: '#52c41a', fontSize: 18 }} />, label: '复核通过', color: '#52c41a' },
+  abnormal: { icon: <CloseOutlined style={{ color: '#ff4d4f', fontSize: 18 }} />, label: '复核失败', color: '#ff4d4f' },
+  unknown: { icon: <QuestionCircleFilled style={{ color: '#8c8c8c', fontSize: 18 }} />, label: '未复核', color: '#8c8c8c' },
+  empty: { icon: <MinusOutlined style={{ color: '#8c8c8c', fontSize: 18 }} />, label: '无需复核', color: '#8c8c8c' },
 };
 
 function renderContentStatus(status: ContentStatus | undefined) {
@@ -28,6 +28,22 @@ function renderContentStatus(status: ContentStatus | undefined) {
   const config = contentStatusConfig[status];
   return <Tooltip title={config.label}>{config.icon}</Tooltip>;
 }
+
+const productContentFields = [
+  { key: 'productTitle' as const, name: '商品标题', number: '①' },
+  { key: 'productMainImage' as const, name: '商品主图', number: '②' },
+  { key: 'productSubtitle' as const, name: '商品副标题', number: '③' },
+  { key: 'productDetail' as const, name: '商品详情', number: '④' },
+  { key: 'productLink' as const, name: '商品链接', number: '⑤' },
+];
+
+const fieldDetailContent: Record<string, { sku: string; omall: string }> = {
+  productTitle: { sku: '普通、套装、盲盒商品必须配置: All Products', omall: '包含All Products' },
+  productMainImage: { sku: '-', omall: '-' },
+  productSubtitle: { sku: '/', omall: '/' },
+  productDetail: { sku: '包含主图内容', omall: '有内容' },
+  productLink: { sku: '--', omall: '--' },
+};
 
 type RiskDisplayItem = (RiskItem & { latestAuditTime: string }) | {
   id: string;
@@ -333,8 +349,46 @@ export default function AuditDataPage() {
   }, []);
 
   const productVisualColumns: ColumnsType<AuditObject> = useMemo(() => {
-    const [actionColumn, baseInfoColumn, latestAuditTimeColumn] = columns;
+    const [, baseInfoColumn, latestAuditTimeColumn] = columns;
     const baseInfoGroupColumn = baseInfoColumn as typeof baseInfoColumn & { children?: ColumnsType<AuditObject> };
+    const productActionColumn: ColumnsType<AuditObject>[number] = {
+      title: '操作',
+      width: 120,
+      align: 'center' as const,
+      fixed: 'left' as const,
+      render: (_, record) => (
+        <Space size={0}>
+          <Button type="link" onClick={() => setCurrent(record)}>
+            详情
+          </Button>
+          <Dropdown
+            trigger={['hover']}
+            menu={{
+              items: [
+                { key: 'review', label: '重新复核' },
+                { key: 'log', label: '查看日志' },
+              ],
+              onClick: ({ key }) => {
+                if (key === 'review') {
+                  Modal.confirm({
+                    title: '确认重新复核？',
+                    content: `将对「${record.name}」重新提交复核，确认继续吗？`,
+                    okText: '确认复核',
+                    cancelText: '取消',
+                    onOk: () => message.success(`已提交「${record.name}」重新复核`),
+                  });
+                  return;
+                }
+
+                message.info(`正在查看「${record.name}」的复核日志`);
+              },
+            }}
+          >
+            <Button type="text" size="small" icon={<MoreOutlined />} />
+          </Dropdown>
+        </Space>
+      ),
+    };
     const productContentColumns: ColumnsType<AuditObject> = [
       {
         title: '商品标题',
@@ -374,7 +428,7 @@ export default function AuditDataPage() {
     ];
 
     return [
-      actionColumn,
+      productActionColumn,
       {
         ...baseInfoGroupColumn,
         children: baseInfoGroupColumn.children || [],
@@ -605,93 +659,8 @@ export default function AuditDataPage() {
     setProductCategory(undefined);
   };
 
-  // 详情页：整页展示
+  // 详情页：商品视觉复核详情
   if (current) {
-    const riskyAuditTypes = auditTypes.filter((auditType) => current.risks[auditType]?.length);
-    const noRiskAuditTypes = auditTypes.filter((auditType) => !current.risks[auditType]?.length);
-    const pendingRows = auditTypes.map((auditType) => ({
-      id: `${current.id}-${auditType}-pending`,
-      fieldName: auditType,
-      status: '复核中' as const,
-      latestAuditTime: current.latestAuditTime,
-    }));
-    const failedRows = auditTypes
-      .flatMap((auditType) => current.risks[auditType].map((risk) => ({ auditType, risk })))
-      .filter(({ risk }) => risk.level === '高风险')
-      .map(({ auditType, risk }) => ({
-        id: `${current.id}-${risk.id}-failed`,
-        fieldName: risk.fieldName || auditType,
-        status: '复核失败' as const,
-        failedReason: risk.description,
-        latestAuditTime: current.latestAuditTime,
-      }));
-    const reviewSuccessContent = (
-      <>
-        <Typography.Title level={5}>有风险字段</Typography.Title>
-        {riskyAuditTypes.length ? (
-          <Tabs
-            items={riskyAuditTypes.map((auditType) => {
-              const highRiskCount = getRiskCount(current, auditType).high;
-
-              return {
-                key: auditType,
-                label: (
-                  <Space size={6}>
-                    <span>{auditType}</span>
-                    <span className="tab-high-risk-count">（高风险 {highRiskCount}）</span>
-                  </Space>
-                ),
-                children: (
-                  <Table
-                    rowKey="id"
-                    columns={riskColumns}
-                    dataSource={current.risks[auditType].map((risk) => ({
-                      ...risk,
-                      latestAuditTime: current.latestAuditTime,
-                    }))}
-                    pagination={false}
-                  />
-                ),
-              };
-            })}
-          />
-        ) : (
-          <Empty description="暂无风险字段" />
-        )}
-
-        <Divider />
-
-        <Typography.Title level={5}>无风险字段</Typography.Title>
-        {noRiskAuditTypes.length ? (
-          <Collapse
-            items={noRiskAuditTypes.map((auditType) => ({
-              key: auditType,
-              label: auditType,
-              children: (
-                <Table
-                  rowKey="id"
-                  columns={riskColumns}
-                  dataSource={[
-                    {
-                      id: `${current.id}-${auditType}-no-risk`,
-                      fieldName: auditType,
-                      description: '未发现风险问题。',
-                      level: '无风险',
-                      suggestion: '无需修改。',
-                      latestAuditTime: current.latestAuditTime,
-                    },
-                  ]}
-                  pagination={false}
-                />
-              ),
-            }))}
-          />
-        ) : (
-          <Empty description="暂无无风险字段" />
-        )}
-      </>
-    );
-
     return (
       <Card
         title={
@@ -701,35 +670,50 @@ export default function AuditDataPage() {
               icon={<ArrowLeftOutlined />}
               onClick={() => setCurrent(null)}
             />
-            <Tag color={typeColorMap[current.type]}>{current.type}</Tag>
-            <Typography.Text strong>{current.name}</Typography.Text>
+            <Typography.Text strong>复核页面1</Typography.Text>
           </Space>
         }
       >
-        <Tabs
-          defaultActiveKey="复核成功"
-          items={[
-            {
-              key: '复核成功',
-              label: '复核成功',
-              children: reviewSuccessContent,
-            },
-            {
-              key: '复核失败',
-              label: '复核失败',
-              children: failedRows.length ? (
-                <Table rowKey="id" columns={reviewFailedColumns} dataSource={failedRows} pagination={false} />
-              ) : (
-                <Empty description="暂无复核失败字段" />
-              ),
-            },
-            {
-              key: '复核中',
-              label: '复核中',
-              children: <Table rowKey="id" columns={reviewPendingColumns} dataSource={pendingRows} pagination={false} />,
-            },
-          ]}
-        />
+        <div className="detail-card-grid">
+          {productContentFields.map((field) => {
+            const status = current.contentStatus?.[field.key];
+            const config = status ? contentStatusConfig[status] : null;
+            const detail = fieldDetailContent[field.key];
+            const failureReason = status === 'abnormal'
+              ? Object.values(current.risks).flat().find((risk) => risk.fieldName.includes(field.name))?.description
+              : undefined;
+
+            return (
+              <div className="detail-card-item" key={field.key}>
+                <div className="detail-card-header">
+                  <span className="detail-card-number">{field.number}</span>
+                  <Typography.Text strong>{field.name}</Typography.Text>
+                  {config && (
+                    <span className="detail-card-status" style={{ color: config.color }}>
+                      {config.icon} {config.label}
+                    </span>
+                  )}
+                </div>
+                <div className="detail-card-body">
+                  <div className="detail-card-row">
+                    <span className="detail-card-label">SKU集</span>
+                    <Typography.Text>{detail.sku}</Typography.Text>
+                  </div>
+                  <div className="detail-card-row">
+                    <span className="detail-card-label">OMALL</span>
+                    <Typography.Text>{detail.omall}</Typography.Text>
+                  </div>
+                  {failureReason && (
+                    <div className="detail-card-row detail-card-reason">
+                      <span className="detail-card-label">原因</span>
+                      <Typography.Text type="danger">{failureReason}</Typography.Text>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </Card>
     );
   }
