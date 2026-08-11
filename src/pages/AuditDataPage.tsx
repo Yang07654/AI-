@@ -66,12 +66,10 @@ export default function AuditDataPage() {
   const [storeName, setStoreName] = useState<string>();
   const [marketingPlan, setMarketingPlan] = useState<string>();
   const [productCategory, setProductCategory] = useState<string>();
-  const [reviewStatus, setReviewStatus] = useState<AuditStatus>();
   const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>([]);
   const [pageKeyword, setPageKeyword] = useState('');
   const [pageStore, setPageStore] = useState<string>();
   const [pageYearMonth, setPageYearMonth] = useState<string>();
-  const [pageReviewStatus, setPageReviewStatus] = useState<AuditStatus>();
 
   const productAuditObjects = useMemo(() => auditObjects.filter((item) => item.type === '商品'), []);
   const pageAuditObjects = useMemo(() => auditObjects.filter((item) => item.type === '页面'), []);
@@ -111,11 +109,10 @@ export default function AuditDataPage() {
         matchedKeyword &&
         (!storeName || item.storeName.includes(storeName)) &&
         (!marketingPlan || item.marketingPlan === marketingPlan) &&
-        (!productCategory || item.productCategory === productCategory) &&
-        (!reviewStatus || item.reviewStatus === reviewStatus)
+        (!productCategory || item.productCategory === productCategory)
       );
     });
-  }, [keyword, marketingPlan, productAuditObjects, productCategory, reviewStatus, storeName]);
+  }, [keyword, marketingPlan, productAuditObjects, productCategory, storeName]);
 
   const filteredPageAuditObjects = useMemo(() => {
     const normalizedKeyword = pageKeyword.trim();
@@ -131,11 +128,10 @@ export default function AuditDataPage() {
       return (
         matchedKeyword &&
         (!pageStore || item.storeName.includes(pageStore)) &&
-        (!pageYearMonth || item.yearMonth === pageYearMonth) &&
-        (!pageReviewStatus || item.reviewStatus === pageReviewStatus)
+        (!pageYearMonth || item.yearMonth === pageYearMonth)
       );
     });
-  }, [pageKeyword, pageStore, pageYearMonth, pageReviewStatus, pageAuditObjects]);
+  }, [pageKeyword, pageStore, pageYearMonth, pageAuditObjects]);
 
   const runBatchReview = () => {
     if (!selectedRowKeys.length) {
@@ -607,7 +603,6 @@ export default function AuditDataPage() {
     setStoreName(undefined);
     setMarketingPlan(undefined);
     setProductCategory(undefined);
-    setReviewStatus(undefined);
   };
 
   // 详情页：整页展示
@@ -775,14 +770,6 @@ export default function AuditDataPage() {
           options={productCategoryOptions.map((value) => ({ label: value, value }))}
           style={{ width: 160 }}
         />
-        <Select
-          allowClear
-          value={reviewStatus}
-          placeholder="复核状态"
-          onChange={setReviewStatus}
-          options={(['复核失败', '复核中', '复核成功'] as AuditStatus[]).map((value) => ({ label: value, value }))}
-          style={{ width: 150 }}
-        />
         <Button onClick={resetFilters}>重置</Button>
       </Space>
       <Space wrap className="audit-action-bar">
@@ -832,20 +819,11 @@ export default function AuditDataPage() {
           options={pageYearMonthOptions.map((value) => ({ label: value, value }))}
           style={{ width: 140 }}
         />
-        <Select
-          allowClear
-          value={pageReviewStatus}
-          placeholder="复核状态"
-          onChange={setPageReviewStatus}
-          options={(['复核失败', '复核中', '复核成功'] as AuditStatus[]).map((value) => ({ label: value, value }))}
-          style={{ width: 150 }}
-        />
         <Button
           onClick={() => {
             setPageKeyword('');
             setPageStore(undefined);
             setPageYearMonth(undefined);
-            setPageReviewStatus(undefined);
           }}
         >
           重置
