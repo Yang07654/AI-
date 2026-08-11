@@ -1,9 +1,10 @@
 import { ArrowLeftOutlined, CheckCircleFilled, CloseOutlined, CopyOutlined, MinusOutlined, MoreOutlined, QuestionCircleFilled } from '@ant-design/icons';
-import { Button, Card, Collapse, Divider, Dropdown, Empty, Input, Modal, Select, Space, Table, Tabs, Tag, Tooltip, Typography, message } from 'antd';
+import { Button, Card, Collapse, Divider, Dropdown, Empty, Form, Input, Modal, Select, Space, Table, Tabs, Tag, Tooltip, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { Key, ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { auditObjects, auditTypes, pageVisualCheckTypes, type AuditObject, type AuditStatus, type AssociationType, type AuditType, type ContentStatus, type ObjectType, type RiskItem, type RiskLevel } from '../mock/auditData';
+import { logRecords, type LogRecord, type LogReviewResult, type LogReviewStatus, type PushStatus } from '../mock/logData';
 
 const typeColorMap: Record<ObjectType, string> = {
   商品: 'blue',
@@ -87,6 +88,23 @@ const statusColorMap: Record<AuditStatus, string> = {
   复核成功: 'green',
 };
 
+const logPushStatusColorMap: Record<PushStatus, string> = {
+  已下推: 'green',
+  未下推: 'default',
+};
+
+const logReviewStatusColorMap: Record<LogReviewStatus, string> = {
+  已复核: 'blue',
+  未复核: 'default',
+  复核中: 'processing',
+};
+
+const logReviewResultColorMap: Record<LogReviewResult | '-', string> = {
+  通过: 'green',
+  失败: 'red',
+  '-': 'default',
+};
+
 const storeOptions = ['美国官网', '日本官网', '新加坡官网', '西班牙官网', '奥地利官网'];
 
 function getRiskCount(record: AuditObject, auditType: AuditType) {
@@ -107,6 +125,14 @@ export default function AuditDataPage() {
   const [pageKeyword, setPageKeyword] = useState('');
   const [pageStore, setPageStore] = useState<string>();
   const [pageYearMonth, setPageYearMonth] = useState<string>();
+  const [currentLogRecord, setCurrentLogRecord] = useState<AuditObject | null>(null);
+  const [logTraceId, setLogTraceId] = useState('');
+  const [logPushStatus, setLogPushStatus] = useState<string>();
+  const [logReviewStatus, setLogReviewStatus] = useState<string>();
+  const [reviewModalVisible, setReviewModalVisible] = useState(false);
+  const [reviewRecord, setReviewRecord] = useState<AuditObject | null>(null);
+  const [reviewItem, setReviewItem] = useState<string[]>();
+  const [activeTab, setActiveTab] = useState('product-visual-audit');
 
   const productAuditObjects = useMemo(() => auditObjects.filter((item) => item.type === '商品'), []);
   const pageAuditObjects = useMemo(() => auditObjects.filter((item) => item.type === '页面'), []);
@@ -169,6 +195,19 @@ export default function AuditDataPage() {
       );
     });
   }, [pageKeyword, pageStore, pageYearMonth, pageAuditObjects]);
+
+  const filteredLogRecords = useMemo(() => {
+    if (!currentLogRecord) return [];
+    const normalizedTraceId = logTraceId.trim();
+
+    return logRecords.filter((record) => {
+      if (record.productId !== currentLogRecord.id) return false;
+      if (normalizedTraceId && !record.traceId.includes(normalizedTraceId)) return false;
+      if (logPushStatus && record.pushStatus !== logPushStatus) return false;
+      if (logReviewStatus && record.reviewStatus !== logReviewStatus) return false;
+      return true;
+    });
+  }, [currentLogRecord, logTraceId, logPushStatus, logReviewStatus]);
 
   const runBatchReview = () => {
     if (!selectedRowKeys.length) {
@@ -237,13 +276,7 @@ export default function AuditDataPage() {
                 ],
                 onClick: ({ key }) => {
                   if (key === 'review') {
-                    Modal.confirm({
-                      title: '确认重新复核？',
-                      content: `将对「${record.name}」重新提交复核，确认继续吗？`,
-                      okText: '确认复核',
-                      cancelText: '取消',
-                      onOk: () => message.success(`已提交「${record.name}」重新复核`),
-                    });
+                    openReviewModal(record);
                     return;
                   }
 
@@ -391,17 +424,11 @@ export default function AuditDataPage() {
               ],
               onClick: ({ key }) => {
                 if (key === 'review') {
-                  Modal.confirm({
-                    title: '确认重新复核？',
-                    content: `将对「${record.name}」重新提交复核，确认继续吗？`,
-                    okText: '确认复核',
-                    cancelText: '取消',
-                    onOk: () => message.success(`已提交「${record.name}」重新复核`),
-                  });
+                  openReviewModal(record);
                   return;
                 }
 
-                message.info(`正在查看「${record.name}」的复核日志`);
+                setCurrentLogRecord(record);
               },
             }}
           >
@@ -482,17 +509,11 @@ export default function AuditDataPage() {
               ],
               onClick: ({ key }) => {
                 if (key === 'review') {
-                  Modal.confirm({
-                    title: '确认重新复核？',
-                    content: `将对「${record.name}」重新提交复核，确认继续吗？`,
-                    okText: '确认复核',
-                    cancelText: '取消',
-                    onOk: () => message.success(`已提交「${record.name}」重新复核`),
-                  });
+                  openReviewModal(record);
                   return;
                 }
 
-                message.info(`正在查看「${record.name}」的复核日志`);
+                setCurrentLogRecord(record);
               },
             }}
           >
@@ -718,6 +739,120 @@ export default function AuditDataPage() {
     setProductCategory(undefined);
   };
 
+  const openReviewModal = (record: AuditObject) => {
+    setReviewRecord(record);
+    setReviewItem(undefined);
+    setReviewModalVisible(true);
+  };
+
+  const handleReviewConfirm = () => {
+    if (!reviewItem || reviewItem.length === 0) {
+      message.warning('请选择复核事项');
+      return;
+    }
+    message.success(`已提交「${reviewRecord?.name}」重新复核，复核事项：${reviewItem.join('、')}`);
+    setReviewModalVisible(false);
+    setReviewRecord(null);
+    setReviewItem(undefined);
+  };
+
+  const logColumns: ColumnsType<LogRecord> = [
+    {
+      title: '营销方案ID',
+      dataIndex: 'marketingPlanId',
+      width: 150,
+    },
+    {
+      title: '追踪ID',
+      dataIndex: 'traceId',
+      width: 200,
+    },
+    {
+      title: '活动商品ID',
+      dataIndex: 'productId',
+      width: 200,
+      render: (id: string) => (
+        <div className="audit-copyable-cell">
+          <Tooltip title={id}>
+            <Typography.Text ellipsis className="audit-copyable-text">
+              {id}
+            </Typography.Text>
+          </Tooltip>
+          <Button
+            className="audit-copyable-button"
+            type="text"
+            size="small"
+            icon={<CopyOutlined />}
+            onClick={() => {
+              navigator.clipboard.writeText(id);
+              message.success('活动商品ID 已复制');
+            }}
+          />
+        </div>
+      ),
+    },
+    {
+      title: '下推状态',
+      dataIndex: 'pushStatus',
+      width: 100,
+      align: 'center',
+      render: (status: PushStatus) => <Tag color={logPushStatusColorMap[status]}>{status}</Tag>,
+    },
+    {
+      title: '复核状态',
+      dataIndex: 'reviewStatus',
+      width: 100,
+      align: 'center',
+      render: (status: LogReviewStatus) => <Tag color={logReviewStatusColorMap[status]}>{status}</Tag>,
+    },
+    {
+      title: '本次推送的ID',
+      dataIndex: 'pushId',
+      width: 180,
+    },
+    {
+      title: '复核人',
+      dataIndex: 'reviewer',
+      width: 120,
+    },
+    {
+      title: '复核结果',
+      dataIndex: 'reviewResult',
+      width: 100,
+      align: 'center',
+      render: (result: LogReviewResult | '-') => <Tag color={logReviewResultColorMap[result]}>{result}</Tag>,
+    },
+    {
+      title: '复核参数',
+      dataIndex: 'reviewParameters',
+      width: 300,
+      render: (text: string) => (
+        <Tooltip title={text}>
+          <Typography.Text ellipsis style={{ maxWidth: 280 }}>
+            {text}
+          </Typography.Text>
+        </Tooltip>
+      ),
+    },
+    {
+      title: '失败原因',
+      dataIndex: 'failureReason',
+      width: 300,
+      render: (text: string) => (
+        <Tooltip title={text}>
+          <Typography.Text ellipsis style={{ maxWidth: 280 }}>
+            {text}
+          </Typography.Text>
+        </Tooltip>
+      ),
+    },
+    {
+      title: '复核时间',
+      dataIndex: 'reviewTime',
+      width: 180,
+    },
+  ];
+
   // 详情页：视觉复核详情
   if (current) {
     const detailFields = current.type === '页面' ? pageVisualDetailFields : productContentFields;
@@ -787,7 +922,81 @@ export default function AuditDataPage() {
     );
   }
 
-  // 列表页
+  // 日志页：复核日志
+  if (currentLogRecord) {
+    return (
+      <Card
+        title={
+          <Space>
+            <Button
+              type="text"
+              icon={<ArrowLeftOutlined />}
+              onClick={() => {
+                setCurrentLogRecord(null);
+                setLogTraceId('');
+                setLogPushStatus(undefined);
+                setLogReviewStatus(undefined);
+              }}
+            />
+            <Typography.Text strong>复核日志</Typography.Text>
+            <Typography.Text type="secondary" style={{ fontSize: 13, fontWeight: 400 }}>
+              {currentLogRecord.name}
+            </Typography.Text>
+          </Space>
+        }
+      >
+        <Space wrap className="audit-filter-bar">
+          <Input.Search
+            allowClear
+            value={logTraceId}
+            placeholder="请输入追踪ID"
+            onSearch={setLogTraceId}
+            onChange={(event) => setLogTraceId(event.target.value)}
+            style={{ width: 240 }}
+          />
+          <Select
+            allowClear
+            value={logPushStatus}
+            placeholder="下推状态"
+            onChange={setLogPushStatus}
+            options={[
+              { label: '已下推', value: '已下推' },
+              { label: '未下推', value: '未下推' },
+            ]}
+            style={{ width: 140 }}
+          />
+          <Select
+            allowClear
+            value={logReviewStatus}
+            placeholder="复核状态"
+            onChange={setLogReviewStatus}
+            options={[
+              { label: '已复核', value: '已复核' },
+              { label: '未复核', value: '未复核' },
+              { label: '复核中', value: '复核中' },
+            ]}
+            style={{ width: 140 }}
+          />
+          <Button
+            onClick={() => {
+              setLogTraceId('');
+              setLogPushStatus(undefined);
+              setLogReviewStatus(undefined);
+            }}
+          >
+            重置
+          </Button>
+        </Space>
+        <Table
+          rowKey="id"
+          columns={logColumns}
+          dataSource={filteredLogRecords}
+          scroll={{ x: 2000 }}
+          pagination={{ pageSize: 10 }}
+        />
+      </Card>
+    );
+  }
   const renderListCard = (tableColumns: ColumnsType<AuditObject>, scrollX = 2900) => (
     <Card>
       <Space wrap className="audit-filter-bar">
@@ -903,21 +1112,62 @@ export default function AuditDataPage() {
   );
 
   return (
-    <Tabs
-      className="audit-top-tabs"
-      defaultActiveKey="product-visual-audit"
-      items={[
-        {
-          key: 'product-visual-audit',
-          label: '商品视觉复核',
-          children: renderListCard(productVisualColumns, 4050),
-        },
-        {
-          key: 'page-visual-audit',
-          label: '页面视觉复核',
-          children: renderPageListCard(),
-        },
-      ]}
-    />
+    <>
+      <Tabs
+        className="audit-top-tabs"
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        items={[
+          {
+            key: 'product-visual-audit',
+            label: '商品视觉复核',
+            children: renderListCard(productVisualColumns, 4050),
+          },
+          {
+            key: 'page-visual-audit',
+            label: '页面视觉复核',
+            children: renderPageListCard(),
+          },
+        ]}
+      />
+      <Modal
+        title="重新复核"
+        open={reviewModalVisible}
+        onCancel={() => {
+          setReviewModalVisible(false);
+          setReviewRecord(null);
+          setReviewItem(undefined);
+        }}
+        footer={[
+          <Button key="cancel" onClick={() => {
+            setReviewModalVisible(false);
+            setReviewRecord(null);
+            setReviewItem(undefined);
+          }}>
+            取消
+          </Button>,
+          <Button key="confirm" type="primary" onClick={handleReviewConfirm}>
+            确定
+          </Button>,
+        ]}
+      >
+        <Form layout="vertical">
+          <Form.Item label="复核事项" required>
+            <Select
+              mode="multiple"
+              value={reviewItem}
+              onChange={setReviewItem}
+              placeholder="请选择复核事项"
+              options={
+                activeTab === 'product-visual-audit'
+                  ? productContentFields.map((field) => ({ label: field.name, value: field.name }))
+                  : pageVisualCheckTypes.map((type) => ({ label: type, value: type }))
+              }
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </>
   );
 }
