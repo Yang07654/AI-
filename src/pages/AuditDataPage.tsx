@@ -696,11 +696,11 @@ export default function AuditDataPage() {
                 </div>
                 <div className="detail-card-body">
                   <div className="detail-card-row">
-                    <span className="detail-card-label">SKU集:</span>
+                    <span className="detail-card-label">商城:</span>
                     <Typography.Text style={{ color: config?.color }}>{detail.sku}</Typography.Text>
                   </div>
                   <div className="detail-card-row">
-                    <span className="detail-card-label">OMALL:</span>
+                    <span className="detail-card-label">知识库:</span>
                     <Typography.Text style={{ color: config?.color }}>{detail.omall}</Typography.Text>
                   </div>
                   {failureReason && (
