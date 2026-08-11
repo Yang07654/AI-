@@ -690,23 +690,23 @@ export default function AuditDataPage() {
                   <Typography.Text strong>{field.name}</Typography.Text>
                   {config && (
                     <span className="detail-card-status" style={{ color: config.color }}>
-                      {config.icon} {config.label}
+                      【{config.label}】
                     </span>
                   )}
                 </div>
                 <div className="detail-card-body">
                   <div className="detail-card-row">
-                    <span className="detail-card-label">SKU集</span>
+                    <span className="detail-card-label">SKU集:</span>
                     <Typography.Text>{detail.sku}</Typography.Text>
                   </div>
                   <div className="detail-card-row">
-                    <span className="detail-card-label">OMALL</span>
+                    <span className="detail-card-label">OMALL:</span>
                     <Typography.Text>{detail.omall}</Typography.Text>
                   </div>
                   {failureReason && (
                     <div className="detail-card-row detail-card-reason">
-                      <span className="detail-card-label">原因</span>
-                      <Typography.Text type="danger">{failureReason}</Typography.Text>
+                      <span className="detail-card-label" style={{ color: config?.color }}>原因:</span>
+                      <Typography.Text style={{ color: config?.color }}>{failureReason}</Typography.Text>
                     </div>
                   )}
                 </div>
