@@ -1,7 +1,6 @@
 import { AuditOutlined } from '@ant-design/icons';
 import { Layout, Menu, Typography } from 'antd';
-import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { BrowserRouter } from 'react-router-dom';
+import { HashRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import AuditDataPage from './pages/AuditDataPage';
 
 const { Sider, Content } = Layout;
@@ -56,8 +55,8 @@ function AppLayout() {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <AppLayout />
-    </BrowserRouter>
+    </HashRouter>
   );
 }
