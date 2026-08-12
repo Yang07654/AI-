@@ -14,7 +14,6 @@ export type PageVisualCheckType =
   | '文案合规检查'
   | '本地化合规检查'
   | '信息正确性检查'
-  | '视觉合规检查'
   | '模块完整性'
   | '排版/布局异常';
 
@@ -71,7 +70,6 @@ export const pageVisualCheckTypes: PageVisualCheckType[] = [
   '文案合规检查',
   '本地化合规检查',
   '信息正确性检查',
-  '视觉合规检查',
   '模块完整性',
   '排版/布局异常',
 ];
@@ -266,7 +264,6 @@ export const auditObjects: AuditObject[] = [
       文案合规检查: 'normal',
       本地化合规检查: 'normal',
       信息正确性检查: 'normal',
-      视觉合规检查: 'normal',
       模块完整性: 'normal',
       '排版/布局异常': 'normal',
     },
@@ -317,7 +314,6 @@ export const auditObjects: AuditObject[] = [
       文案合规检查: 'normal',
       本地化合规检查: 'normal',
       信息正确性检查: 'unknown',
-      视觉合规检查: 'normal',
       模块完整性: 'normal',
       '排版/布局异常': 'abnormal',
     },
@@ -363,7 +359,6 @@ export const auditObjects: AuditObject[] = [
       文案合规检查: 'normal',
       本地化合规检查: 'normal',
       信息正确性检查: 'normal',
-      视觉合规检查: 'normal',
       模块完整性: 'normal',
       '排版/布局异常': 'normal',
     },
@@ -405,7 +400,6 @@ export const auditObjects: AuditObject[] = [
       文案合规检查: 'normal',
       本地化合规检查: 'normal',
       信息正确性检查: 'normal',
-      视觉合规检查: 'normal',
       模块完整性: 'normal',
       '排版/布局异常': 'normal',
     },
@@ -447,7 +441,6 @@ export const auditObjects: AuditObject[] = [
       文案合规检查: 'normal',
       本地化合规检查: 'normal',
       信息正确性检查: 'normal',
-      视觉合规检查: 'normal',
       模块完整性: 'normal',
       '排版/布局异常': 'normal',
     },

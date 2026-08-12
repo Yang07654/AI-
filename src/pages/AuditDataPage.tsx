@@ -1,10 +1,10 @@
-import { ArrowLeftOutlined, CheckCircleFilled, CloseOutlined, CopyOutlined, MinusOutlined, MoreOutlined, QuestionCircleFilled } from '@ant-design/icons';
+import { ArrowLeftOutlined, CheckCircleFilled, CloseOutlined, CopyOutlined, MinusOutlined, MoreOutlined, QuestionCircleFilled, SearchOutlined } from '@ant-design/icons';
 import { Button, Card, Collapse, Divider, Dropdown, Empty, Form, Input, Modal, Select, Space, Table, Tabs, Tag, Tooltip, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { Key, ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { auditObjects, auditTypes, pageVisualCheckTypes, type AuditObject, type AuditStatus, type AssociationType, type AuditType, type ContentStatus, type ObjectType, type RiskItem, type RiskLevel } from '../mock/auditData';
-import { logRecords, type LogRecord, type LogReviewResult, type LogReviewStatus, type PushStatus } from '../mock/logData';
+import { logRecords, type LogRecord, type LogReviewStatus, type PushStatus } from '../mock/logData';
 
 const typeColorMap: Record<ObjectType, string> = {
   商品: 'blue',
@@ -62,7 +62,6 @@ const pageVisualDetailContent: Record<string, { sku: string; omall: string }> = 
   文案合规检查: { sku: '页面文案需符合广告宣传与平台规则', omall: '文案符合规则' },
   本地化合规检查: { sku: '页面表达需符合当地语言与文化习惯', omall: '本地化表达正常' },
   信息正确性检查: { sku: '价格、活动、商品等信息需准确一致', omall: '信息准确' },
-  视觉合规检查: { sku: '页面整体视觉需符合品牌规范', omall: '视觉符合规范' },
   模块完整性: { sku: '页面模块需完整，不可缺失关键区域', omall: '模块完整' },
   '排版/布局异常': { sku: '页面排版需整齐，无错位、重叠或异常留白', omall: '布局正常' },
 };
@@ -94,15 +93,9 @@ const logPushStatusColorMap: Record<PushStatus, string> = {
 };
 
 const logReviewStatusColorMap: Record<LogReviewStatus, string> = {
-  已复核: 'blue',
+  已复核: 'green',
   未复核: 'default',
   复核中: 'processing',
-};
-
-const logReviewResultColorMap: Record<LogReviewResult | '-', string> = {
-  通过: 'green',
-  失败: 'red',
-  '-': 'default',
 };
 
 const storeOptions = ['美国官网', '日本官网', '新加坡官网', '西班牙官网', '奥地利官网'];
@@ -133,6 +126,7 @@ export default function AuditDataPage() {
   const [reviewRecord, setReviewRecord] = useState<AuditObject | null>(null);
   const [reviewItem, setReviewItem] = useState<string[]>();
   const [activeTab, setActiveTab] = useState('product-visual-audit');
+  const [logViewTab, setLogViewTab] = useState<'product' | 'page'>('product');
 
   const productAuditObjects = useMemo(() => auditObjects.filter((item) => item.type === '商品'), []);
   const pageAuditObjects = useMemo(() => auditObjects.filter((item) => item.type === '页面'), []);
@@ -201,7 +195,7 @@ export default function AuditDataPage() {
     const normalizedTraceId = logTraceId.trim();
 
     return logRecords.filter((record) => {
-      if (record.productId !== currentLogRecord.id) return false;
+      if (record.reviewId !== currentLogRecord.id) return false;
       if (normalizedTraceId && !record.traceId.includes(normalizedTraceId)) return false;
       if (logPushStatus && record.pushStatus !== logPushStatus) return false;
       if (logReviewStatus && record.reviewStatus !== logReviewStatus) return false;
@@ -428,6 +422,7 @@ export default function AuditDataPage() {
                   return;
                 }
 
+                setLogViewTab('product');
                 setCurrentLogRecord(record);
               },
             }}
@@ -513,6 +508,7 @@ export default function AuditDataPage() {
                   return;
                 }
 
+                setLogViewTab('page');
                 setCurrentLogRecord(record);
               },
             }}
@@ -596,7 +592,7 @@ export default function AuditDataPage() {
       },
       {
         title: '文本复核',
-        children: pageVisualCheckTypes.slice(5, 10).map((checkType) => ({
+        children: pageVisualCheckTypes.slice(5, 9).map((checkType) => ({
           title: checkType,
           dataIndex: 'pageVisualStatus',
           width: 130,
@@ -606,7 +602,7 @@ export default function AuditDataPage() {
       },
       {
         title: '布局复核',
-        children: pageVisualCheckTypes.slice(10).map((checkType) => ({
+        children: pageVisualCheckTypes.slice(9).map((checkType) => ({
           title: checkType,
           dataIndex: 'pageVisualStatus',
           width: 130,
@@ -758,18 +754,186 @@ export default function AuditDataPage() {
 
   const logColumns: ColumnsType<LogRecord> = [
     {
+      title: '复核年月',
+      dataIndex: 'yearMonth',
+      width: 100,
+    },
+    {
+      title: '店铺',
+      dataIndex: 'storeName',
+      width: 160,
+      render: (storeName: string) => <Typography.Text style={{ whiteSpace: 'pre-line' }}>{storeName}</Typography.Text>,
+    },
+    {
+      title: '复核ID',
+      dataIndex: 'reviewId',
+      width: 200,
+      render: (id: string) => (
+        <div className="audit-copyable-cell">
+          <Tooltip title={id}>
+            <Typography.Text ellipsis className="audit-copyable-text">
+              {id}
+            </Typography.Text>
+          </Tooltip>
+          <Button
+            className="audit-copyable-button"
+            type="text"
+            size="small"
+            icon={<CopyOutlined />}
+            onClick={() => {
+              navigator.clipboard.writeText(id);
+              message.success('复核ID 已复制');
+            }}
+          />
+        </div>
+      ),
+    },
+    {
+      title: '复核参数',
+      dataIndex: 'reviewParameters',
+      width: 300,
+      render: (text: string) => (
+        <Tooltip title={text}>
+          <Typography.Text ellipsis style={{ maxWidth: 280 }}>
+            {text || '-'}
+          </Typography.Text>
+        </Tooltip>
+      ),
+    },
+    {
+      title: '复核结果',
+      dataIndex: 'reviewResult',
+      width: 300,
+      render: (text: string) => (
+        <Tooltip title={text}>
+          <Typography.Text ellipsis style={{ maxWidth: 280 }}>
+            {text || '-'}
+          </Typography.Text>
+        </Tooltip>
+      ),
+    },
+    {
+      title: 'traceId',
+      dataIndex: 'traceId',
+      width: 220,
+      render: (id: string) => (
+        <div className="audit-copyable-cell">
+          <Tooltip title={id}>
+            <Typography.Text ellipsis className="audit-copyable-text">
+              {id || '-'}
+            </Typography.Text>
+          </Tooltip>
+          {id && (
+            <Button
+              className="audit-copyable-button"
+              type="text"
+              size="small"
+              icon={<CopyOutlined />}
+              onClick={() => {
+                navigator.clipboard.writeText(id);
+                message.success('traceId 已复制');
+              }}
+            />
+          )}
+        </div>
+      ),
+    },
+    {
+      title: '下推状态',
+      dataIndex: 'pushStatus',
+      width: 100,
+      align: 'center',
+      render: (status: PushStatus) => <Tag color={logPushStatusColorMap[status]}>{status}</Tag>,
+    },
+    {
+      title: '复核状态',
+      dataIndex: 'reviewStatus',
+      width: 100,
+      align: 'center',
+      render: (status: LogReviewStatus) => <Tag color={logReviewStatusColorMap[status]}>{status}</Tag>,
+    },
+    {
+      title: '失败原因',
+      dataIndex: 'failureReason',
+      width: 300,
+      render: (text: string) => (
+        <Tooltip title={text}>
+          <Typography.Text ellipsis style={{ maxWidth: 280 }}>
+            {text || '-'}
+          </Typography.Text>
+        </Tooltip>
+      ),
+    },
+    {
+      title: '复核人',
+      dataIndex: 'reviewer',
+      width: 120,
+      render: (text: string) => text || '-',
+    },
+    {
+      title: '复核时间',
+      dataIndex: 'reviewTime',
+      width: 180,
+      render: (text: string) => text || '-',
+    },
+  ];
+
+  const productLogColumns: ColumnsType<LogRecord> = [
+    {
       title: '营销方案ID',
       dataIndex: 'marketingPlanId',
-      width: 150,
+      width: 200,
+      render: (id?: string) => (
+        <div className="audit-copyable-cell">
+          <Tooltip title={id}>
+            <Typography.Text ellipsis className="audit-copyable-text">
+              {id || '-'}
+            </Typography.Text>
+          </Tooltip>
+          {id && (
+            <Button
+              className="audit-copyable-button"
+              type="text"
+              size="small"
+              icon={<CopyOutlined />}
+              onClick={() => {
+                navigator.clipboard.writeText(id);
+                message.success('营销方案ID 已复制');
+              }}
+            />
+          )}
+        </div>
+      ),
     },
     {
       title: '追踪ID',
       dataIndex: 'traceId',
-      width: 200,
+      width: 220,
+      render: (id: string) => (
+        <div className="audit-copyable-cell">
+          <Tooltip title={id}>
+            <Typography.Text ellipsis className="audit-copyable-text">
+              {id || '-'}
+            </Typography.Text>
+          </Tooltip>
+          {id && (
+            <Button
+              className="audit-copyable-button"
+              type="text"
+              size="small"
+              icon={<CopyOutlined />}
+              onClick={() => {
+                navigator.clipboard.writeText(id);
+                message.success('追踪ID 已复制');
+              }}
+            />
+          )}
+        </div>
+      ),
     },
     {
       title: '活动商品ID',
-      dataIndex: 'productId',
+      dataIndex: 'reviewId',
       width: 200,
       render: (id: string) => (
         <div className="audit-copyable-cell">
@@ -808,19 +972,46 @@ export default function AuditDataPage() {
     {
       title: '本次推送的ID',
       dataIndex: 'pushId',
-      width: 180,
+      width: 200,
+      render: (id?: string) => (
+        <div className="audit-copyable-cell">
+          <Tooltip title={id}>
+            <Typography.Text ellipsis className="audit-copyable-text">
+              {id || '-'}
+            </Typography.Text>
+          </Tooltip>
+          {id && (
+            <Button
+              className="audit-copyable-button"
+              type="text"
+              size="small"
+              icon={<CopyOutlined />}
+              onClick={() => {
+                navigator.clipboard.writeText(id);
+                message.success('本次推送的ID 已复制');
+              }}
+            />
+          )}
+        </div>
+      ),
     },
     {
       title: '复核人',
       dataIndex: 'reviewer',
       width: 120,
+      render: (text: string) => text || '-',
     },
     {
       title: '复核结果',
       dataIndex: 'reviewResult',
-      width: 100,
-      align: 'center',
-      render: (result: LogReviewResult | '-') => <Tag color={logReviewResultColorMap[result]}>{result}</Tag>,
+      width: 300,
+      render: (text: string) => (
+        <Tooltip title={text}>
+          <Typography.Text ellipsis style={{ maxWidth: 280 }}>
+            {text || '-'}
+          </Typography.Text>
+        </Tooltip>
+      ),
     },
     {
       title: '复核参数',
@@ -829,7 +1020,7 @@ export default function AuditDataPage() {
       render: (text: string) => (
         <Tooltip title={text}>
           <Typography.Text ellipsis style={{ maxWidth: 280 }}>
-            {text}
+            {text || '-'}
           </Typography.Text>
         </Tooltip>
       ),
@@ -841,7 +1032,7 @@ export default function AuditDataPage() {
       render: (text: string) => (
         <Tooltip title={text}>
           <Typography.Text ellipsis style={{ maxWidth: 280 }}>
-            {text}
+            {text || '-'}
           </Typography.Text>
         </Tooltip>
       ),
@@ -850,10 +1041,9 @@ export default function AuditDataPage() {
       title: '复核时间',
       dataIndex: 'reviewTime',
       width: 180,
+      render: (text: string) => text || '-',
     },
   ];
-
-  // 详情页：视觉复核详情
   if (current) {
     const detailFields = current.type === '页面' ? pageVisualDetailFields : productContentFields;
     const getDetailStatus = (key: string) => (
@@ -924,6 +1114,7 @@ export default function AuditDataPage() {
 
   // 日志页：复核日志
   if (currentLogRecord) {
+    const isProductLog = logViewTab === 'product';
     return (
       <Card
         title={
@@ -945,53 +1136,98 @@ export default function AuditDataPage() {
           </Space>
         }
       >
-        <Space wrap className="audit-filter-bar">
-          <Input.Search
-            allowClear
-            value={logTraceId}
-            placeholder="请输入追踪ID"
-            onSearch={setLogTraceId}
-            onChange={(event) => setLogTraceId(event.target.value)}
-            style={{ width: 240 }}
-          />
-          <Select
-            allowClear
-            value={logPushStatus}
-            placeholder="下推状态"
-            onChange={setLogPushStatus}
-            options={[
-              { label: '已下推', value: '已下推' },
-              { label: '未下推', value: '未下推' },
-            ]}
-            style={{ width: 140 }}
-          />
-          <Select
-            allowClear
-            value={logReviewStatus}
-            placeholder="复核状态"
-            onChange={setLogReviewStatus}
-            options={[
-              { label: '已复核', value: '已复核' },
-              { label: '未复核', value: '未复核' },
-              { label: '复核中', value: '复核中' },
-            ]}
-            style={{ width: 140 }}
-          />
-          <Button
-            onClick={() => {
-              setLogTraceId('');
-              setLogPushStatus(undefined);
-              setLogReviewStatus(undefined);
-            }}
-          >
-            重置
-          </Button>
-        </Space>
+        {isProductLog ? (
+          <Space wrap className="audit-filter-bar">
+            <Input
+              allowClear
+              value={logTraceId}
+              placeholder="请输入追踪ID"
+              onChange={(event) => setLogTraceId(event.target.value)}
+              style={{ width: 240 }}
+            />
+            <Select
+              value={logPushStatus || ''}
+              onChange={(value) => setLogPushStatus(value || undefined)}
+              options={[
+                { label: '全部', value: '' },
+                { label: '已下推', value: '已下推' },
+                { label: '未下推', value: '未下推' },
+              ]}
+              style={{ width: 140 }}
+            />
+            <Select
+              value={logReviewStatus || ''}
+              onChange={(value) => setLogReviewStatus(value || undefined)}
+              options={[
+                { label: '全部', value: '' },
+                { label: '已复核', value: '已复核' },
+                { label: '未复核', value: '未复核' },
+                { label: '复核中', value: '复核中' },
+              ]}
+              style={{ width: 140 }}
+            />
+            <Button type="primary" icon={<SearchOutlined />}>
+              查询
+            </Button>
+            <Button
+              onClick={() => {
+                setLogTraceId('');
+                setLogPushStatus(undefined);
+                setLogReviewStatus(undefined);
+              }}
+            >
+              重置
+            </Button>
+          </Space>
+        ) : (
+          <Space wrap className="audit-filter-bar">
+            <Input.Search
+              allowClear
+              value={logTraceId}
+              placeholder="请输入追踪ID"
+              onSearch={setLogTraceId}
+              onChange={(event) => setLogTraceId(event.target.value)}
+              style={{ width: 240 }}
+            />
+            <Select
+              allowClear
+              value={logPushStatus}
+              placeholder="下推状态"
+              onChange={setLogPushStatus}
+              options={[
+                { label: '已下推', value: '已下推' },
+                { label: '未下推', value: '未下推' },
+              ]}
+              style={{ width: 140 }}
+            />
+            <Select
+              allowClear
+              value={logReviewStatus}
+              placeholder="复核状态"
+              onChange={setLogReviewStatus}
+              options={[
+                { label: '已复核', value: '已复核' },
+                { label: '未复核', value: '未复核' },
+                { label: '复核中', value: '复核中' },
+              ]}
+              style={{ width: 140 }}
+            />
+            <Button
+              onClick={() => {
+                setLogTraceId('');
+                setLogPushStatus(undefined);
+                setLogReviewStatus(undefined);
+              }}
+            >
+              重置
+            </Button>
+          </Space>
+        )}
         <Table
           rowKey="id"
-          columns={logColumns}
+          columns={isProductLog ? productLogColumns : logColumns}
           dataSource={filteredLogRecords}
-          scroll={{ x: 2000 }}
+          scroll={{ x: isProductLog ? 2400 : 2200 }}
           pagination={{ pageSize: 10 }}
         />
       </Card>
