@@ -1,5 +1,5 @@
 import { ArrowLeftOutlined, CheckCircleFilled, CloseOutlined, CopyOutlined, MinusOutlined, MoreOutlined, QuestionCircleFilled, SearchOutlined } from '@ant-design/icons';
-import { Button, Card, Collapse, Divider, Dropdown, Empty, Form, Input, Modal, Select, Space, Table, Tabs, Tag, Tooltip, Typography, message } from 'antd';
+import { Button, Card, Collapse, Divider, Dropdown, Form, Input, Modal, Select, Space, Table, Tabs, Tag, Tooltip, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { Key, ReactNode } from 'react';
 import { useMemo, useState } from 'react';
@@ -30,21 +30,78 @@ function renderContentStatus(status: ContentStatus | undefined) {
   return <Tooltip title={config.label}>{config.icon}</Tooltip>;
 }
 
+function renderProductContentStatus(record: AuditObject, fieldKey: string, fieldName: string) {
+  const status = record.contentStatus?.[fieldKey as keyof typeof record.contentStatus];
+  if (!status) return '-';
+  const config = contentStatusConfig[status];
+
+  if (status === 'abnormal') {
+    const riskItem = Object.values(record.risks).flat().find((risk) => risk.fieldName.includes(fieldName));
+    const failureReason = riskItem?.description || '当前字段复核失败，请检查内容。';
+
+    return (
+      <Tooltip
+        overlayStyle={{ maxWidth: 400 }}
+        title={
+          <div style={{ maxHeight: 200, overflowY: 'auto', lineHeight: 1.8 }}>
+            <div style={{ marginBottom: 4 }}>
+              <span style={{ fontWeight: 'bold' }}>失败字段/模块：</span>
+              {fieldName}
+            </div>
+            <div>
+              <span style={{ fontWeight: 'bold' }}>失败原因：</span>
+              {failureReason}
+            </div>
+          </div>
+        }
+      >
+        {config.icon}
+      </Tooltip>
+    );
+  }
+
+  return <Tooltip title={config.label}>{config.icon}</Tooltip>;
+}
+
+function renderPageVisualContentStatus(record: AuditObject, checkType: string) {
+  const status = record.pageVisualStatus?.[checkType as keyof typeof record.pageVisualStatus];
+  if (!status) return '-';
+  const config = contentStatusConfig[status];
+
+  if (status === 'abnormal') {
+    const failureInfo = pageVisualFailureInfo[checkType];
+    return (
+      <Tooltip
+        overlayStyle={{ maxWidth: 400 }}
+        title={
+          <div style={{ maxHeight: 200, overflowY: 'auto', lineHeight: 1.8 }}>
+            <div style={{ marginBottom: 4 }}>
+              <span style={{ fontWeight: 'bold' }}>失败字段/模块：</span>
+              {checkType}
+            </div>
+            <div>
+              <span style={{ fontWeight: 'bold' }}>失败原因：</span>
+              {failureInfo?.reason || '当前检查项复核失败'}
+            </div>
+          </div>
+        }
+      >
+        {config.icon}
+      </Tooltip>
+    );
+  }
+
+  return <Tooltip title={config.label}>{config.icon}</Tooltip>;
+}
+
 const productContentFields = [
   { key: 'productTitle' as const, name: '商品标题', number: '1' },
   { key: 'productMainImage' as const, name: '商品主图', number: '2' },
   { key: 'productSubtitle' as const, name: '商品副标题', number: '3' },
   { key: 'productDetail' as const, name: '商品详情', number: '4' },
-  { key: 'productLink' as const, name: '商品链接', number: '5' },
+  { key: 'productSkuDetail' as const, name: '商品SKU详情', number: '5' },
+  { key: 'productLink' as const, name: '商品链接', number: '6' },
 ];
-
-const fieldDetailContent: Record<string, { sku: string; omall: string }> = {
-  productTitle: { sku: '普通、套装、盲盒商品必须配置: All Products', omall: '包含All Products' },
-  productMainImage: { sku: '-', omall: '-' },
-  productSubtitle: { sku: '/', omall: '/' },
-  productDetail: { sku: '包含主图内容', omall: '有内容' },
-  productLink: { sku: '--', omall: '--' },
-};
 
 const pageVisualDetailFields = pageVisualCheckTypes.map((name, index) => ({
   key: name,
@@ -53,17 +110,111 @@ const pageVisualDetailFields = pageVisualCheckTypes.map((name, index) => ({
 }));
 
 const pageVisualDetailContent: Record<string, { sku: string; omall: string }> = {
+  语言书写错误检查: { sku: '页面文案不得存在拼写、语法或书写错误', omall: '语言书写正常' },
+  文案合规检查: { sku: '页面文案需符合广告宣传与平台规则', omall: '文案符合规则' },
+  本地化合规: { sku: '页面表达需符合当地语言与文化习惯', omall: '本地化表达正常' },
+  信息正确性审核: { sku: '价格、活动、商品等信息需准确一致', omall: '信息准确' },
   图片完整性: { sku: '页面图片需完整展示，不可缺失、遮挡或加载异常', omall: '图片完整展示' },
   图片质量: { sku: '图片需清晰，无明显模糊、压缩、噪点问题', omall: '图片质量正常' },
   '图片尺寸/比例': { sku: '尺寸比例需符合页面视觉规范', omall: '尺寸比例符合规范' },
   '商品/主体展示': { sku: '商品或页面主体需突出展示', omall: '主体展示清晰' },
   图片内容合规: { sku: '图片内容不得包含违规元素', omall: '图片内容合规' },
-  语言书写错误检查: { sku: '页面文案不得存在拼写、语法或书写错误', omall: '语言书写正常' },
-  文案合规检查: { sku: '页面文案需符合广告宣传与平台规则', omall: '文案符合规则' },
-  本地化合规检查: { sku: '页面表达需符合当地语言与文化习惯', omall: '本地化表达正常' },
-  信息正确性检查: { sku: '价格、活动、商品等信息需准确一致', omall: '信息准确' },
+  有效性检查: { sku: '页面链接及功能需有效可用', omall: '链接有效' },
   模块完整性: { sku: '页面模块需完整，不可缺失关键区域', omall: '模块完整' },
   '排版/布局异常': { sku: '页面排版需整齐，无错位、重叠或异常留白', omall: '布局正常' },
+};
+
+const pageVisualFailureInfo: Record<string, { reason: string; suggestion: string }> = {
+  '语言书写错误检查': { reason: '页面文案存在拼写或语法错误', suggestion: '建议修正拼写和语法错误' },
+  '文案合规检查': { reason: '页面文案不符合广告宣传规则', suggestion: '建议修改文案，确保符合平台规则' },
+  '本地化合规': { reason: '页面表达不符合当地语言文化习惯', suggestion: '建议调整为符合本地用户习惯的表达' },
+  '信息正确性审核': { reason: '价格、活动等信息不准确', suggestion: '建议核实并更正信息，确保准确一致' },
+  '图片完整性': { reason: '页面图片存在缺失或加载异常', suggestion: '建议补充缺失图片，确保所有图片资源正常加载' },
+  '图片质量': { reason: '图片存在模糊、压缩或噪点问题', suggestion: '建议更换高清原图，避免过度压缩' },
+  '图片尺寸/比例': { reason: '图片尺寸比例不符合视觉规范', suggestion: '建议按规范调整图片尺寸和比例' },
+  '商品/主体展示': { reason: '商品主体展示不突出', suggestion: '建议优化图片构图，突出商品主体' },
+  '图片内容合规': { reason: '图片内容包含违规元素', suggestion: '建议移除违规元素，替换为合规图片' },
+  '有效性检查': { reason: '页面链接失效或功能不可用', suggestion: '建议修复失效链接，确保功能正常可用' },
+  '模块完整性': { reason: '页面模块缺失关键区域', suggestion: '建议补充缺失模块，确保页面完整' },
+  '排版/布局异常': { reason: '页面排版存在错位或异常留白', suggestion: '建议调整布局，确保排版整齐' },
+};
+
+const pageVisualSubFields: Record<string, Array<{ fieldName: string; mallData: string; defaultStatus: ContentStatus }>> = {
+  '语言书写错误检查': [
+    { fieldName: '模块名称', mallData: '秒杀活动模块', defaultStatus: 'empty' },
+    { fieldName: '模块中文字', mallData: '秒杀活动模块', defaultStatus: 'normal' },
+  ],
+  '文案合规检查': [
+    { fieldName: '活动规则文案', mallData: '满199减50', defaultStatus: 'normal' },
+    { fieldName: '促销标语', mallData: '限时特惠', defaultStatus: 'normal' },
+  ],
+  '本地化合规': [
+    { fieldName: '货币格式', mallData: '$199', defaultStatus: 'normal' },
+    { fieldName: '日期格式', mallData: '2026-08-01', defaultStatus: 'normal' },
+  ],
+  '信息正确性审核': [
+    { fieldName: '价格信息', mallData: '$199', defaultStatus: 'normal' },
+    { fieldName: '活动时间', mallData: '2026-08-01 至 2026-08-31', defaultStatus: 'normal' },
+  ],
+  '图片完整性': [
+    { fieldName: 'Banner图', mallData: 'summer-banner.jpg', defaultStatus: 'normal' },
+    { fieldName: '商品图', mallData: 'product-001.jpg', defaultStatus: 'normal' },
+  ],
+  '图片质量': [
+    { fieldName: 'Banner图清晰度', mallData: '1920x600', defaultStatus: 'normal' },
+    { fieldName: '商品图清晰度', mallData: '800x800', defaultStatus: 'normal' },
+  ],
+  '图片尺寸/比例': [
+    { fieldName: 'Banner图尺寸', mallData: '1920x600', defaultStatus: 'normal' },
+    { fieldName: '商品图尺寸', mallData: '800x800', defaultStatus: 'normal' },
+  ],
+  '商品/主体展示': [
+    { fieldName: '主图商品占比', mallData: '70%', defaultStatus: 'normal' },
+    { fieldName: '背景干净度', mallData: '纯白背景', defaultStatus: 'normal' },
+  ],
+  '图片内容合规': [
+    { fieldName: '违禁元素', mallData: '无', defaultStatus: 'normal' },
+    { fieldName: '水印检测', mallData: '无水印', defaultStatus: 'normal' },
+  ],
+  '有效性检查': [
+    { fieldName: '页面链接', mallData: 'https://olightstore.com/page', defaultStatus: 'normal' },
+    { fieldName: '跳转链接', mallData: 'https://olightstore.com/product', defaultStatus: 'normal' },
+  ],
+  '模块完整性': [
+    { fieldName: '头部导航', mallData: '已配置', defaultStatus: 'normal' },
+    { fieldName: '底部信息', mallData: '已配置', defaultStatus: 'normal' },
+  ],
+  '排版/布局异常': [
+    { fieldName: '模块间距', mallData: '20px', defaultStatus: 'normal' },
+    { fieldName: '对齐方式', mallData: '居中对齐', defaultStatus: 'normal' },
+  ],
+};
+
+const productSubFields: Record<string, Array<{ fieldName: string; mallData: string; defaultStatus: ContentStatus }>> = {
+  productTitle: [
+    { fieldName: '标题内容', mallData: 'EDC Flashlight - 1600 Lumens USB-C', defaultStatus: 'normal' },
+    { fieldName: '标题格式', mallData: '符合字数与格式规范', defaultStatus: 'normal' },
+  ],
+  productMainImage: [
+    { fieldName: '主图内容', mallData: 'product-main-001.jpg', defaultStatus: 'normal' },
+    { fieldName: '主图尺寸', mallData: '800x800', defaultStatus: 'normal' },
+  ],
+  productSubtitle: [
+    { fieldName: '副标题内容', mallData: '高品质EDC手电筒', defaultStatus: 'normal' },
+    { fieldName: '副标题格式', mallData: '符合规范', defaultStatus: 'normal' },
+  ],
+  productDetail: [
+    { fieldName: '详情内容', mallData: '包含主图内容与卖点描述', defaultStatus: 'normal' },
+    { fieldName: '详情格式', mallData: '图文混排', defaultStatus: 'normal' },
+  ],
+  productSkuDetail: [
+    { fieldName: 'SKU信息', mallData: 'SKU-001 / SKU-002 / SKU-003', defaultStatus: 'normal' },
+    { fieldName: 'SKU一致性', mallData: '颜色/规格信息一致', defaultStatus: 'normal' },
+  ],
+  productLink: [
+    { fieldName: '链接地址', mallData: 'https://olightstore.com/product/001', defaultStatus: 'normal' },
+    { fieldName: '链接有效性', mallData: '有效', defaultStatus: 'normal' },
+  ],
 };
 
 type RiskDisplayItem = (RiskItem & { latestAuditTime: string }) | {
@@ -127,6 +278,7 @@ export default function AuditDataPage() {
   const [reviewItem, setReviewItem] = useState<string[]>();
   const [activeTab, setActiveTab] = useState('product-visual-audit');
   const [logViewTab, setLogViewTab] = useState<'product' | 'page'>('product');
+  const [pageDetailStatusFilter, setPageDetailStatusFilter] = useState<ContentStatus[]>(['abnormal', 'unknown', 'empty']);
 
   const productAuditObjects = useMemo(() => auditObjects.filter((item) => item.type === '商品'), []);
   const pageAuditObjects = useMemo(() => auditObjects.filter((item) => item.type === '页面'), []);
@@ -438,35 +590,42 @@ export default function AuditDataPage() {
         dataIndex: 'contentStatus',
         width: 100,
         align: 'center' as const,
-        render: (_, record) => renderContentStatus(record.contentStatus?.productTitle),
+        render: (_, record) => renderProductContentStatus(record, 'productTitle', '商品标题'),
       },
       {
         title: '商品主图',
         dataIndex: 'contentStatus',
         width: 100,
         align: 'center' as const,
-        render: (_, record) => renderContentStatus(record.contentStatus?.productMainImage),
+        render: (_, record) => renderProductContentStatus(record, 'productMainImage', '商品主图'),
       },
       {
         title: '商品副标题',
         dataIndex: 'contentStatus',
         width: 100,
         align: 'center' as const,
-        render: (_, record) => renderContentStatus(record.contentStatus?.productSubtitle),
+        render: (_, record) => renderProductContentStatus(record, 'productSubtitle', '商品副标题'),
       },
       {
         title: '商品详情',
         dataIndex: 'contentStatus',
         width: 100,
         align: 'center' as const,
-        render: (_, record) => renderContentStatus(record.contentStatus?.productDetail),
+        render: (_, record) => renderProductContentStatus(record, 'productDetail', '商品详情'),
+      },
+      {
+        title: '商品SKU详情',
+        dataIndex: 'contentStatus',
+        width: 110,
+        align: 'center' as const,
+        render: (_, record) => renderProductContentStatus(record, 'productSkuDetail', '商品SKU详情'),
       },
       {
         title: '商品链接',
         dataIndex: 'contentStatus',
         width: 100,
         align: 'center' as const,
-        render: (_, record) => renderContentStatus(record.contentStatus?.productLink),
+        render: (_, record) => renderProductContentStatus(record, 'productLink', '商品链接'),
       },
     ];
 
@@ -581,33 +740,43 @@ export default function AuditDataPage() {
         ],
       },
       {
-        title: '图片复核',
-        children: pageVisualCheckTypes.slice(0, 5).map((checkType) => ({
+        title: '文本复核',
+        children: pageVisualCheckTypes.slice(0, 4).map((checkType) => ({
           title: checkType,
           dataIndex: 'pageVisualStatus',
           width: 130,
           align: 'center' as const,
-          render: (_: unknown, record: AuditObject) => renderContentStatus(record.pageVisualStatus?.[checkType]),
+          render: (_: unknown, record: AuditObject) => renderPageVisualContentStatus(record, checkType),
         })),
       },
       {
-        title: '文本复核',
-        children: pageVisualCheckTypes.slice(5, 9).map((checkType) => ({
+        title: '图片复核',
+        children: pageVisualCheckTypes.slice(4, 9).map((checkType) => ({
           title: checkType,
           dataIndex: 'pageVisualStatus',
           width: 130,
           align: 'center' as const,
-          render: (_: unknown, record: AuditObject) => renderContentStatus(record.pageVisualStatus?.[checkType]),
+          render: (_: unknown, record: AuditObject) => renderPageVisualContentStatus(record, checkType),
+        })),
+      },
+      {
+        title: '有效性检查',
+        children: pageVisualCheckTypes.slice(9, 10).map((checkType) => ({
+          title: checkType,
+          dataIndex: 'pageVisualStatus',
+          width: 130,
+          align: 'center' as const,
+          render: (_: unknown, record: AuditObject) => renderPageVisualContentStatus(record, checkType),
         })),
       },
       {
         title: '布局复核',
-        children: pageVisualCheckTypes.slice(9).map((checkType) => ({
+        children: pageVisualCheckTypes.slice(10).map((checkType) => ({
           title: checkType,
           dataIndex: 'pageVisualStatus',
           width: 130,
           align: 'center' as const,
-          render: (_: unknown, record: AuditObject) => renderContentStatus(record.pageVisualStatus?.[checkType]),
+          render: (_: unknown, record: AuditObject) => renderPageVisualContentStatus(record, checkType),
         })),
       },
       {
@@ -1045,69 +1214,175 @@ export default function AuditDataPage() {
     },
   ];
   if (current) {
-    const detailFields = current.type === '页面' ? pageVisualDetailFields : productContentFields;
-    const getDetailStatus = (key: string) => (
-      current.type === '页面'
-        ? current.pageVisualStatus?.[key as keyof typeof current.pageVisualStatus]
-        : current.contentStatus?.[key as keyof typeof current.contentStatus]
-    );
-    const getDetailContent = (key: string) => (
-      current.type === '页面' ? pageVisualDetailContent[key] : fieldDetailContent[key]
+    const isPageType = current.type === '页面';
+
+    const cardTitle = (
+      <Space>
+        <Button
+          type="text"
+          icon={<ArrowLeftOutlined />}
+          onClick={() => setCurrent(null)}
+        />
+        <Typography.Text strong>复核页面1</Typography.Text>
+      </Space>
     );
 
-    return (
-      <Card
-        title={
-          <Space>
-            <Button
-              type="text"
-              icon={<ArrowLeftOutlined />}
-              onClick={() => setCurrent(null)}
-            />
-            <Typography.Text strong>复核页面1</Typography.Text>
-          </Space>
-        }
-      >
-        <div className="detail-card-grid">
-          {detailFields.map((field) => {
-            const status = getDetailStatus(field.key);
-            const config = status ? contentStatusConfig[status] : null;
-            const detail = getDetailContent(field.key);
-            const failureReason = status === 'abnormal'
-              ? Object.values(current.risks).flat().find((risk) => risk.fieldName.includes(field.name))?.description || '当前字段复核失败，请检查商城与知识库内容是否一致。'
-              : undefined;
+    const pageVisualDetailTables = (
+      <>
+        <div style={{ marginBottom: 16 }}>
+          <span style={{ marginRight: 8 }}>复核状态：</span>
+          <Select
+            mode="multiple"
+            value={pageDetailStatusFilter}
+            onChange={(value: ContentStatus[]) => setPageDetailStatusFilter(value)}
+            options={[
+              { label: '复核通过', value: 'normal' },
+              { label: '复核失败', value: 'abnormal' },
+              { label: '未复核', value: 'unknown' },
+              { label: '无需复核', value: 'empty' },
+            ]}
+            style={{ width: 400 }}
+            placeholder="选择复核状态"
+            allowClear
+          />
+        </div>
+        <Space direction="vertical" style={{ width: '100%' }} size="middle">
+          {pageVisualDetailFields.map((field) => {
+            const overallStatus = current.pageVisualStatus?.[field.key as keyof typeof current.pageVisualStatus] || 'unknown';
+            const subFields = pageVisualSubFields[field.name] || [];
+            const failureInfo = overallStatus === 'abnormal' ? pageVisualFailureInfo[field.name] : null;
+
+            const tableData = subFields
+              .map((subField, index) => {
+                let itemStatus: ContentStatus = subField.defaultStatus;
+                if (overallStatus === 'abnormal' && index === 0) {
+                  itemStatus = 'abnormal';
+                } else if (overallStatus === 'unknown') {
+                  itemStatus = 'unknown';
+                } else if (overallStatus === 'empty') {
+                  itemStatus = 'empty';
+                }
+                const config = contentStatusConfig[itemStatus];
+                return {
+                  key: `${field.key}-${index}`,
+                  fieldName: subField.fieldName,
+                  mallData: subField.mallData,
+                  statusLabel: config.label,
+                  statusColor: config.color,
+                  itemStatus,
+                  reason: itemStatus === 'abnormal' ? (failureInfo?.reason || '-') : '-',
+                  suggestion: itemStatus === 'abnormal' ? (failureInfo?.suggestion || '-') : '-',
+                };
+              })
+              .filter((row) => pageDetailStatusFilter.includes(row.itemStatus));
+
+            if (tableData.length === 0) return null;
 
             return (
-              <div className="detail-card-item" key={field.key}>
-                <div className="detail-card-header">
-                  <span className="detail-card-number">{field.number}</span>
-                  <Typography.Text strong>{field.name}</Typography.Text>
-                  {config && (
-                    <span className="detail-card-status" style={{ color: config.color }}>
-                      【{config.label}】
-                    </span>
-                  )}
-                </div>
-                <div className="detail-card-body">
-                  <div className="detail-card-row">
-                    <span className="detail-card-label">商城:</span>
-                    <Typography.Text style={{ color: config?.color }}>{detail.sku}</Typography.Text>
-                  </div>
-                  <div className="detail-card-row">
-                    <span className="detail-card-label">知识库:</span>
-                    <Typography.Text style={{ color: '#52c41a' }}>{detail.omall}</Typography.Text>
-                  </div>
-                  {failureReason && (
-                    <div className="detail-card-row detail-card-reason">
-                      <span className="detail-card-label" style={{ color: config?.color }}>原因:</span>
-                      <Typography.Text style={{ color: config?.color }}>{failureReason}</Typography.Text>
-                    </div>
-                  )}
-                </div>
+              <div key={field.key}>
+                <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
+                  {field.name}
+                </Typography.Text>
+                <Table
+                  columns={[
+                    { title: (field.name === '模块完整性' || field.name === '排版/布局异常') ? '模块' : '字段名', dataIndex: 'fieldName', width: 120 },
+                    { title: '商城数据', dataIndex: 'mallData', width: 200 },
+                    { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: string, record: { statusColor: string }) => <span style={{ color: record.statusColor }}>{text}</span> },
+                    { title: '原因', dataIndex: 'reason', width: 250 },
+                    { title: 'AI建议修改', dataIndex: 'suggestion', width: 250 },
+                  ]}
+                  dataSource={tableData}
+                  pagination={{ pageSize: 5, showSizeChanger: false, showTotal: (total: number) => `共 ${total} 条` }}
+                  size="small"
+                />
               </div>
             );
           })}
+        </Space>
+      </>
+    );
+
+    if (isPageType) {
+      return (
+        <Card title={cardTitle}>
+          {pageVisualDetailTables}
+        </Card>
+      );
+    }
+
+    return (
+      <Card title={cardTitle}>
+        <Tabs
+          defaultActiveKey="product-info"
+          items={[
+            {
+              key: 'product-info',
+              label: '商品信息',
+              children: (
+                <>
+                  <div style={{ marginBottom: 16 }}>
+                    <span style={{ marginRight: 8 }}>复核状态：</span>
+                    <Select
+                      mode="multiple"
+                      value={pageDetailStatusFilter}
+            onChange={(value: ContentStatus[]) => setPageDetailStatusFilter(value)}
+            options={[
+              { label: '复核通过', value: 'normal' },
+              { label: '复核失败', value: 'abnormal' },
+              { label: '未复核', value: 'unknown' },
+              { label: '无需复核', value: 'empty' },
+            ]}
+            style={{ width: 400 }}
+            placeholder="选择复核状态"
+            allowClear
+          />
         </div>
+        <Table
+          columns={[
+            { title: '字段名', dataIndex: 'fieldName', width: 120 },
+            { title: '商城数据', dataIndex: 'mallData', width: 200 },
+            { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: string, record: { statusColor: string }) => <span style={{ color: record.statusColor }}>{text}</span> },
+            { title: '原因', dataIndex: 'reason', width: 250 },
+            { title: 'AI建议修改方式', dataIndex: 'suggestion', width: 250 },
+          ]}
+          dataSource={productContentFields.filter((f) => f.key !== 'productDetail' && f.key !== 'productSkuDetail').map((field) => {
+            const overallStatus: ContentStatus = current.contentStatus?.[field.key as keyof typeof current.contentStatus] || 'unknown';
+            const subFields = productSubFields[field.key] || [];
+            const riskItem = overallStatus === 'abnormal'
+              ? Object.values(current.risks).flat().find((risk) => risk.fieldName.includes(field.name))
+              : null;
+            const failureReason = riskItem?.description || '当前字段复核失败，请检查商城内容。';
+            const aiSuggestion = riskItem?.suggestion || '建议检查并修正相关内容。';
+            const config = contentStatusConfig[overallStatus];
+            return {
+              key: field.key,
+              fieldName: field.name,
+              mallData: subFields[0]?.mallData || '-',
+              statusLabel: config.label,
+              statusColor: config.color,
+              itemStatus: overallStatus,
+              reason: overallStatus === 'abnormal' ? failureReason : '-',
+              suggestion: overallStatus === 'abnormal' ? aiSuggestion : '-',
+            };
+          }).filter((row) => pageDetailStatusFilter.includes(row.itemStatus))}
+          pagination={{ pageSize: 5, showSizeChanger: false, showTotal: (total: number) => `共 ${total} 条` }}
+          size="small"
+        />
+              </>
+              ),
+            },
+            {
+              key: 'product-detail-page',
+              label: '商品详情页',
+              children: pageVisualDetailTables,
+            },
+            {
+              key: 'product-sku-detail-page',
+              label: '商品SKU详情页',
+              children: pageVisualDetailTables,
+            },
+          ]}
+        />
       </Card>
     );
   }

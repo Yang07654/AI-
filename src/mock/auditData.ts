@@ -5,15 +5,16 @@ export type AuditStatus = '复核失败' | '复核中' | '复核成功';
 export type AssociationType = '新创建商品' | '关联OMALL主商品';
 export type ContentStatus = 'normal' | 'abnormal' | 'unknown' | 'empty';
 export type PageVisualCheckType =
+  | '语言书写错误检查'
+  | '文案合规检查'
+  | '本地化合规'
+  | '信息正确性审核'
   | '图片完整性'
   | '图片质量'
   | '图片尺寸/比例'
   | '商品/主体展示'
   | '图片内容合规'
-  | '语言书写错误检查'
-  | '文案合规检查'
-  | '本地化合规检查'
-  | '信息正确性检查'
+  | '有效性检查'
   | '模块完整性'
   | '排版/布局异常';
 
@@ -22,6 +23,7 @@ export interface ProductContentStatus {
   productMainImage: ContentStatus;
   productSubtitle: ContentStatus;
   productDetail: ContentStatus;
+  productSkuDetail: ContentStatus;
   productLink: ContentStatus;
 }
 
@@ -61,15 +63,16 @@ export interface AuditObject {
 
 export const auditTypes: AuditType[] = ['视觉检查', '文案合规检查', '本地化检查', '信息正确性检查', '视觉合规检查'];
 export const pageVisualCheckTypes: PageVisualCheckType[] = [
+  '语言书写错误检查',
+  '文案合规检查',
+  '本地化合规',
+  '信息正确性审核',
   '图片完整性',
   '图片质量',
   '图片尺寸/比例',
   '商品/主体展示',
   '图片内容合规',
-  '语言书写错误检查',
-  '文案合规检查',
-  '本地化合规检查',
-  '信息正确性检查',
+  '有效性检查',
   '模块完整性',
   '排版/布局异常',
 ];
@@ -93,6 +96,7 @@ export const auditObjects: AuditObject[] = [
       productMainImage: 'normal',
       productSubtitle: 'normal',
       productDetail: 'normal',
+      productSkuDetail: 'abnormal',
       productLink: 'normal',
     },
     risks: {
@@ -130,6 +134,7 @@ export const auditObjects: AuditObject[] = [
       productMainImage: 'unknown',
       productSubtitle: 'normal',
       productDetail: 'normal',
+      productSkuDetail: 'normal',
       productLink: 'normal',
     },
     risks: {
@@ -168,6 +173,7 @@ export const auditObjects: AuditObject[] = [
       productMainImage: 'normal',
       productSubtitle: 'empty',
       productDetail: 'normal',
+      productSkuDetail: 'normal',
       productLink: 'normal',
     },
     risks: {
@@ -196,6 +202,7 @@ export const auditObjects: AuditObject[] = [
       productMainImage: 'normal',
       productSubtitle: 'abnormal',
       productDetail: 'normal',
+      productSkuDetail: 'normal',
       productLink: 'normal',
     },
     risks: {
@@ -224,6 +231,7 @@ export const auditObjects: AuditObject[] = [
       productMainImage: 'normal',
       productSubtitle: 'normal',
       productDetail: 'normal',
+      productSkuDetail: 'normal',
       productLink: 'normal',
     },
     risks: {
@@ -255,15 +263,16 @@ export const auditObjects: AuditObject[] = [
     carouselImageStatus: 'normal',
     carouselLinkStatus: 'normal',
     pageVisualStatus: {
+      语言书写错误检查: 'normal',
+      文案合规检查: 'normal',
+      本地化合规: 'normal',
+      信息正确性审核: 'normal',
       图片完整性: 'normal',
       图片质量: 'normal',
       '图片尺寸/比例': 'normal',
       '商品/主体展示': 'normal',
       图片内容合规: 'normal',
-      语言书写错误检查: 'normal',
-      文案合规检查: 'normal',
-      本地化合规检查: 'normal',
-      信息正确性检查: 'normal',
+      有效性检查: 'normal',
       模块完整性: 'normal',
       '排版/布局异常': 'normal',
     },
@@ -305,15 +314,16 @@ export const auditObjects: AuditObject[] = [
     carouselImageStatus: 'abnormal',
     carouselLinkStatus: 'unknown',
     pageVisualStatus: {
+      语言书写错误检查: 'normal',
+      文案合规检查: 'normal',
+      本地化合规: 'normal',
+      信息正确性审核: 'unknown',
       图片完整性: 'abnormal',
       图片质量: 'unknown',
       '图片尺寸/比例': 'normal',
       '商品/主体展示': 'normal',
       图片内容合规: 'normal',
-      语言书写错误检查: 'normal',
-      文案合规检查: 'normal',
-      本地化合规检查: 'normal',
-      信息正确性检查: 'unknown',
+      有效性检查: 'abnormal',
       模块完整性: 'normal',
       '排版/布局异常': 'abnormal',
     },
@@ -350,15 +360,16 @@ export const auditObjects: AuditObject[] = [
     carouselImageStatus: 'normal',
     carouselLinkStatus: 'normal',
     pageVisualStatus: {
+      语言书写错误检查: 'normal',
+      文案合规检查: 'normal',
+      本地化合规: 'normal',
+      信息正确性审核: 'normal',
       图片完整性: 'normal',
       图片质量: 'normal',
       '图片尺寸/比例': 'normal',
       '商品/主体展示': 'empty',
       图片内容合规: 'normal',
-      语言书写错误检查: 'normal',
-      文案合规检查: 'normal',
-      本地化合规检查: 'normal',
-      信息正确性检查: 'normal',
+      有效性检查: 'normal',
       模块完整性: 'normal',
       '排版/布局异常': 'normal',
     },
@@ -391,15 +402,16 @@ export const auditObjects: AuditObject[] = [
     carouselImageStatus: 'normal',
     carouselLinkStatus: 'normal',
     pageVisualStatus: {
+      语言书写错误检查: 'abnormal',
+      文案合规检查: 'normal',
+      本地化合规: 'normal',
+      信息正确性审核: 'normal',
       图片完整性: 'normal',
       图片质量: 'normal',
       '图片尺寸/比例': 'normal',
       '商品/主体展示': 'normal',
       图片内容合规: 'normal',
-      语言书写错误检查: 'abnormal',
-      文案合规检查: 'normal',
-      本地化合规检查: 'normal',
-      信息正确性检查: 'normal',
+      有效性检查: 'normal',
       模块完整性: 'normal',
       '排版/布局异常': 'normal',
     },
@@ -432,15 +444,16 @@ export const auditObjects: AuditObject[] = [
     carouselImageStatus: 'normal',
     carouselLinkStatus: 'normal',
     pageVisualStatus: {
+      语言书写错误检查: 'normal',
+      文案合规检查: 'normal',
+      本地化合规: 'normal',
+      信息正确性审核: 'normal',
       图片完整性: 'normal',
       图片质量: 'normal',
       '图片尺寸/比例': 'normal',
       '商品/主体展示': 'normal',
       图片内容合规: 'normal',
-      语言书写错误检查: 'normal',
-      文案合规检查: 'normal',
-      本地化合规检查: 'normal',
-      信息正确性检查: 'normal',
+      有效性检查: 'normal',
       模块完整性: 'normal',
       '排版/布局异常': 'normal',
     },
