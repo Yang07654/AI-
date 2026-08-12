@@ -42,8 +42,9 @@ function renderProductContentStatus(record: AuditObject, fieldKey: string, field
     return (
       <Tooltip
         overlayStyle={{ maxWidth: 400 }}
+        overlayInnerStyle={{ backgroundColor: '#fff' }}
         title={
-          <div style={{ maxHeight: 200, overflowY: 'auto', lineHeight: 1.8 }}>
+          <div style={{ maxHeight: 200, overflowY: 'auto', lineHeight: 1.8, color: '#ff4d4f' }}>
             <div style={{ marginBottom: 4 }}>
               <span style={{ fontWeight: 'bold' }}>失败字段/模块：</span>
               {fieldName}
@@ -73,8 +74,9 @@ function renderPageVisualContentStatus(record: AuditObject, checkType: string) {
     return (
       <Tooltip
         overlayStyle={{ maxWidth: 400 }}
+        overlayInnerStyle={{ backgroundColor: '#fff' }}
         title={
-          <div style={{ maxHeight: 200, overflowY: 'auto', lineHeight: 1.8 }}>
+          <div style={{ maxHeight: 200, overflowY: 'auto', lineHeight: 1.8, color: '#ff4d4f' }}>
             <div style={{ marginBottom: 4 }}>
               <span style={{ fontWeight: 'bold' }}>失败字段/模块：</span>
               {checkType}
