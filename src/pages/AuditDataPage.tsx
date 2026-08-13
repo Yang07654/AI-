@@ -30,14 +30,23 @@ function renderContentStatus(status: ContentStatus | undefined) {
   return <Tooltip title={config.label}>{config.icon}</Tooltip>;
 }
 
+const productFailureOverride: Record<string, { reason: string; suggestion: string; fieldName?: string }> = {
+  商品标题: { reason: '名词单复数不一致（参数描述高频错）', suggestion: '500 lumens rechargeable flashlight' },
+  商品副标题: { reason: '名词单复数不一致（参数描述高频错）', suggestion: '500 lumens rechargeable flashlight' },
+  商品详情: { reason: '名词单复数不一致（参数描述高频错）', suggestion: '500 lumens rechargeable flashlight', fieldName: '模块名称' },
+  商品SKU详情: { reason: '名词单复数不一致（参数描述高频错）', suggestion: '500 lumens rechargeable flashlight', fieldName: '模块名称' },
+};
+
 function renderProductContentStatus(record: AuditObject, fieldKey: string, fieldName: string) {
   const status = record.contentStatus?.[fieldKey as keyof typeof record.contentStatus];
   if (!status) return '-';
   const config = contentStatusConfig[status];
 
   if (status === 'abnormal') {
+    const override = productFailureOverride[fieldName];
     const riskItem = Object.values(record.risks).flat().find((risk) => risk.fieldName.includes(fieldName));
-    const failureReason = riskItem?.description || '当前字段复核失败，请检查内容。';
+    const failureReason = override?.reason || riskItem?.description || '当前字段复核失败，请检查内容。';
+    const aiSuggestion = override?.suggestion || riskItem?.suggestion || '建议检查并修正相关内容。';
 
     return (
       <Tooltip
@@ -47,11 +56,15 @@ function renderProductContentStatus(record: AuditObject, fieldKey: string, field
           <div style={{ maxHeight: 200, overflowY: 'auto', lineHeight: 1.8, color: '#ff4d4f' }}>
             <div style={{ marginBottom: 4 }}>
               <span style={{ fontWeight: 'bold' }}>失败字段/模块：</span>
-              {fieldName}
+              {override?.fieldName || fieldName}
             </div>
-            <div>
+            <div style={{ marginBottom: 4 }}>
               <span style={{ fontWeight: 'bold' }}>失败原因：</span>
               {failureReason}
+            </div>
+            <div>
+              <span style={{ fontWeight: 'bold' }}>AI建议修改：</span>
+              {aiSuggestion}
             </div>
           </div>
         }
@@ -71,20 +84,37 @@ function renderPageVisualContentStatus(record: AuditObject, checkType: string) {
 
   if (status === 'abnormal') {
     const failureInfo = pageVisualFailureInfo[checkType];
+    const subFields = pageVisualSubFields[checkType] || [];
+    const failedSubFields = subFields.filter((subField, index) => {
+      let itemStatus: ContentStatus = subField.defaultStatus;
+      if (index === 0) {
+        itemStatus = 'abnormal';
+      }
+      return itemStatus === 'abnormal';
+    });
+
     return (
       <Tooltip
         overlayStyle={{ maxWidth: 400 }}
-        overlayInnerStyle={{ backgroundColor: '#fff' }}
+        overlayInnerStyle={{ backgroundColor: '#fff', maxHeight: 200, overflowY: 'auto', padding: 12 }}
         title={
-          <div style={{ maxHeight: 200, overflowY: 'auto', lineHeight: 1.8, color: '#ff4d4f' }}>
-            <div style={{ marginBottom: 4 }}>
-              <span style={{ fontWeight: 'bold' }}>失败字段/模块：</span>
-              {checkType}
-            </div>
-            <div>
-              <span style={{ fontWeight: 'bold' }}>失败原因：</span>
-              {failureInfo?.reason || '当前检查项复核失败'}
-            </div>
+          <div style={{ lineHeight: 1.8, color: '#ff4d4f' }}>
+            {failedSubFields.map((subField, index) => (
+              <div key={index} style={{ marginBottom: index < failedSubFields.length - 1 ? 12 : 0 }}>
+                <div style={{ marginBottom: 4 }}>
+                  <span style={{ fontWeight: 'bold' }}>失败字段/模块：</span>
+                  {subField.fieldName}
+                </div>
+                <div style={{ marginBottom: 4 }}>
+                  <span style={{ fontWeight: 'bold' }}>失败原因：</span>
+                  {failureInfo?.reason || '当前检查项复核失败'}
+                </div>
+                <div>
+                  <span style={{ fontWeight: 'bold' }}>AI建议修改：</span>
+                  {failureInfo?.suggestion || '建议检查并修正相关内容。'}
+                </div>
+              </div>
+            ))}
           </div>
         }
       >
@@ -1229,7 +1259,7 @@ export default function AuditDataPage() {
       </Space>
     );
 
-    const pageVisualDetailTables = (
+    const renderPageVisualDetailTables = (failedProductField?: string) => (
       <>
         <div style={{ marginBottom: 16 }}>
           <span style={{ marginRight: 8 }}>复核状态：</span>
@@ -1250,9 +1280,13 @@ export default function AuditDataPage() {
         </div>
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
           {pageVisualDetailFields.map((field) => {
-            const overallStatus = current.pageVisualStatus?.[field.key as keyof typeof current.pageVisualStatus] || 'unknown';
+            let overallStatus: ContentStatus = current.pageVisualStatus?.[field.key as keyof typeof current.pageVisualStatus] || 'unknown';
+            const productFailureOverrideInfo = failedProductField ? productFailureOverride[failedProductField] : null;
+            if (failedProductField && field.name === '语言书写错误检查') {
+              overallStatus = 'abnormal';
+            }
             const subFields = pageVisualSubFields[field.name] || [];
-            const failureInfo = overallStatus === 'abnormal' ? pageVisualFailureInfo[field.name] : null;
+            const failureInfo = overallStatus === 'abnormal' ? (productFailureOverrideInfo || pageVisualFailureInfo[field.name]) : null;
 
             const tableData = subFields
               .map((subField, index) => {
@@ -1307,7 +1341,7 @@ export default function AuditDataPage() {
     if (isPageType) {
       return (
         <Card title={cardTitle}>
-          {pageVisualDetailTables}
+          {renderPageVisualDetailTables()}
         </Card>
       );
     }
@@ -1376,12 +1410,12 @@ export default function AuditDataPage() {
             {
               key: 'product-detail-page',
               label: '商品详情页',
-              children: pageVisualDetailTables,
+              children: renderPageVisualDetailTables(current.contentStatus?.productDetail === 'abnormal' ? '商品详情' : undefined),
             },
             {
               key: 'product-sku-detail-page',
               label: '商品SKU详情页',
-              children: pageVisualDetailTables,
+              children: renderPageVisualDetailTables(current.contentStatus?.productSkuDetail === 'abnormal' ? '商品SKU详情' : undefined),
             },
           ]}
         />
