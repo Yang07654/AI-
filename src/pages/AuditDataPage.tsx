@@ -33,8 +33,8 @@ function renderContentStatus(status: ContentStatus | undefined) {
 const productFailureOverride: Record<string, { reason: string; suggestion: string; fieldName?: string }> = {
   商品标题: { reason: '名词单复数不一致（参数描述高频错）', suggestion: '500 lumens rechargeable flashlight' },
   商品副标题: { reason: '名词单复数不一致（参数描述高频错）', suggestion: '500 lumens rechargeable flashlight' },
-  商品详情: { reason: '名词单复数不一致（参数描述高频错）', suggestion: '500 lumens rechargeable flashlight', fieldName: '模块名称' },
-  商品SKU详情: { reason: '名词单复数不一致（参数描述高频错）', suggestion: '500 lumens rechargeable flashlight', fieldName: '模块名称' },
+  商品详情: { reason: '名词单复数不一致（参数描述高频错）', suggestion: '500 lumens rechargeable flashlight', fieldName: '基本信息-商品副标题' },
+  商品SKU详情: { reason: '名词单复数不一致（参数描述高频错）', suggestion: '500 lumens rechargeable flashlight', fieldName: '基本信息-商品副标题' },
 };
 
 function renderProductContentStatus(record: AuditObject, fieldKey: string, fieldName: string) {
@@ -47,16 +47,21 @@ function renderProductContentStatus(record: AuditObject, fieldKey: string, field
     const riskItem = Object.values(record.risks).flat().find((risk) => risk.fieldName.includes(fieldName));
     const failureReason = override?.reason || riskItem?.description || '当前字段复核失败，请检查内容。';
     const aiSuggestion = override?.suggestion || riskItem?.suggestion || '建议检查并修正相关内容。';
+    const currentData = productSubFields[fieldKey]?.[0]?.mallData || '-';
 
     return (
       <Tooltip
         overlayStyle={{ maxWidth: 400 }}
-        overlayInnerStyle={{ backgroundColor: '#fff' }}
+        overlayInnerStyle={{ backgroundColor: '#fff', maxHeight: 200, overflowY: 'auto', padding: 12 }}
         title={
-          <div style={{ maxHeight: 200, overflowY: 'auto', lineHeight: 1.8, color: '#ff4d4f' }}>
+          <div style={{ lineHeight: 1.8, color: '#ff4d4f' }}>
             <div style={{ marginBottom: 4 }}>
               <span style={{ fontWeight: 'bold' }}>失败字段/模块：</span>
               {override?.fieldName || fieldName}
+            </div>
+            <div style={{ marginBottom: 4 }}>
+              <span style={{ fontWeight: 'bold' }}>当前数据：</span>
+              {currentData}
             </div>
             <div style={{ marginBottom: 4 }}>
               <span style={{ fontWeight: 'bold' }}>失败原因：</span>
@@ -104,6 +109,10 @@ function renderPageVisualContentStatus(record: AuditObject, checkType: string) {
                 <div style={{ marginBottom: 4 }}>
                   <span style={{ fontWeight: 'bold' }}>失败字段/模块：</span>
                   {subField.fieldName}
+                </div>
+                <div style={{ marginBottom: 4 }}>
+                  <span style={{ fontWeight: 'bold' }}>当前数据：</span>
+                  {subField.mallData}
                 </div>
                 <div style={{ marginBottom: 4 }}>
                   <span style={{ fontWeight: 'bold' }}>失败原因：</span>
@@ -173,8 +182,8 @@ const pageVisualFailureInfo: Record<string, { reason: string; suggestion: string
 
 const pageVisualSubFields: Record<string, Array<{ fieldName: string; mallData: string; defaultStatus: ContentStatus }>> = {
   '语言书写错误检查': [
-    { fieldName: '模块名称', mallData: '秒杀活动模块', defaultStatus: 'empty' },
-    { fieldName: '模块中文字', mallData: '秒杀活动模块', defaultStatus: 'normal' },
+    { fieldName: '基本信息-商品副标题', mallData: 'ArkPro Ultra is a flat unibody EDC flashlight that combines 4 lights and 7 configurations in one compact EDC light. Featuring a ', defaultStatus: 'empty' },
+    { fieldName: '售后服务-更多说明', mallData: 'ArkPro Ultra is a flat unibody EDC flashlight that combines 4 lights and 7 configurations in one compact EDC light. Featuring a ', defaultStatus: 'normal' },
   ],
   '文案合规检查': [
     { fieldName: '活动规则文案', mallData: '满199减50', defaultStatus: 'normal' },
@@ -228,7 +237,7 @@ const productSubFields: Record<string, Array<{ fieldName: string; mallData: stri
     { fieldName: '标题格式', mallData: '符合字数与格式规范', defaultStatus: 'normal' },
   ],
   productMainImage: [
-    { fieldName: '主图内容', mallData: 'product-main-001.jpg', defaultStatus: 'normal' },
+    { fieldName: '主图内容', mallData: `${import.meta.env.BASE_URL}product-main-image.webp`, defaultStatus: 'normal' },
     { fieldName: '主图尺寸', mallData: '800x800', defaultStatus: 'normal' },
   ],
   productSubtitle: [
@@ -1322,7 +1331,7 @@ export default function AuditDataPage() {
                 <Table
                   columns={[
                     { title: (field.name === '模块完整性' || field.name === '排版/布局异常') ? '模块' : '字段名', dataIndex: 'fieldName', width: 120 },
-                    { title: '商城数据', dataIndex: 'mallData', width: 200 },
+                    { title: '当前数据', dataIndex: 'mallData', width: 200 },
                     { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: string, record: { statusColor: string }) => <span style={{ color: record.statusColor }}>{text}</span> },
                     { title: '原因', dataIndex: 'reason', width: 250 },
                     { title: 'AI建议修改', dataIndex: 'suggestion', width: 250 },
@@ -1376,8 +1385,8 @@ export default function AuditDataPage() {
         <Table
           columns={[
             { title: '字段名', dataIndex: 'fieldName', width: 120 },
-            { title: '商城数据', dataIndex: 'mallData', width: 200 },
-            { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: string, record: { statusColor: string }) => <span style={{ color: record.statusColor }}>{text}</span> },
+            { title: '当前数据', dataIndex: 'mallData', width: 200, render: (text: any, record: any) => record.key === 'productMainImage' && text !== '-' ? <img src={text} alt="商品主图" style={{ width: 80, height: 80, objectFit: 'contain' }} /> : text },
+            { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
             { title: '原因', dataIndex: 'reason', width: 250 },
             { title: 'AI建议修改方式', dataIndex: 'suggestion', width: 250 },
           ]}
