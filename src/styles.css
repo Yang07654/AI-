@@ -91,29 +91,121 @@ body {
   margin-bottom: 16px;
 }
 
-.audit-copyable-cell,
-.audit-product-name-cell {
+.audit-copyable-cell {
   display: flex;
   width: 100%;
   align-items: center;
   gap: 6px;
 }
 
-.audit-copyable-text,
-.audit-product-name-text {
+.audit-copyable-text {
   flex: 1;
   min-width: 0;
 }
 
-.audit-copyable-button,
-.audit-product-name-copy {
+.audit-copyable-button {
   flex: 0 0 auto;
   opacity: 0;
   transition: opacity 0.2s ease;
 }
 
-.audit-copyable-cell:hover .audit-copyable-button,
-.audit-product-name-cell:hover .audit-product-name-copy {
+.audit-copyable-cell:hover .audit-copyable-button {
+  opacity: 1;
+}
+
+/* Product visual audit tab styles */
+.product-filter-bar {
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 14px;
+  background: #f8fafc;
+  border: 1px solid #edf0f5;
+  border-radius: 10px;
+}
+
+.product-action-bar {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.product-copyable-cell {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 6px;
+}
+
+.product-copyable-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.product-copyable-button {
+  flex: 0 0 auto;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.product-copyable-cell:hover .product-copyable-button {
+  opacity: 1;
+}
+
+.product-name-cell {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 6px;
+}
+
+.product-name-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.product-name-copy {
+  flex: 0 0 auto;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.product-name-cell:hover .product-name-copy {
+  opacity: 1;
+}
+
+/* Page visual audit tab styles */
+.page-filter-bar {
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 14px;
+  background: #f8fafc;
+  border: 1px solid #edf0f5;
+  border-radius: 10px;
+}
+
+.page-action-bar {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.page-copyable-cell {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 6px;
+}
+
+.page-copyable-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.page-copyable-button {
+  flex: 0 0 auto;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.page-copyable-cell:hover .page-copyable-button {
   opacity: 1;
 }
 
@@ -251,4 +343,30 @@ body {
 .detail-card-reason {
   padding-top: 4px;
   margin-top: 4px;
+}
+
+.failure-tooltip .ant-tooltip-inner::-webkit-scrollbar {
+  width: 4px;
+}
+
+.failure-tooltip .ant-tooltip-inner::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.failure-tooltip .ant-tooltip-inner::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 2px;
+}
+
+.failure-tooltip:hover .ant-tooltip-inner::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.failure-tooltip .ant-tooltip-inner {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.failure-tooltip:hover .ant-tooltip-inner {
+  scrollbar-color: rgba(0, 0, 0, 0.25) transparent;
 }
