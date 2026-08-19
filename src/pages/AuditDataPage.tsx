@@ -197,7 +197,7 @@ const pageVisualDetailFields = pageVisualCheckTypes.map((name, index) => ({
 }));
 
 const pageVisualDetailContent: Record<string, { sku: string; omall: string }> = {
-  语言书写检查: { sku: '页面文案不得存在拼写、语法或书写错误', omall: '语言书写正常' },
+  语言书写错误检查: { sku: '页面文案不得存在拼写、语法或书写错误', omall: '语言书写正常' },
   文案合规检查: { sku: '页面文案需符合广告宣传与平台规则', omall: '文案符合规则' },
   本地化合规: { sku: '页面表达需符合当地语言与文化习惯', omall: '本地化表达正常' },
   信息正确性审核: { sku: '价格、活动、商品等信息需准确一致', omall: '信息准确' },
@@ -212,7 +212,7 @@ const pageVisualDetailContent: Record<string, { sku: string; omall: string }> = 
 };
 
 const pageVisualFailureInfo: Record<string, { reason: string; suggestion: string }> = {
-  '语言书写检查': { reason: '页面文案存在拼写或语法错误', suggestion: '建议修正拼写和语法错误' },
+  '语言书写错误检查': { reason: '页面文案存在拼写或语法错误', suggestion: '建议修正拼写和语法错误' },
   '文案合规检查': { reason: '页面文案不符合广告宣传规则', suggestion: '建议修改文案，确保符合平台规则' },
   '本地化合规': { reason: '页面表达不符合当地语言文化习惯', suggestion: '建议调整为符合本地用户习惯的表达' },
   '信息正确性审核': { reason: '价格、活动等信息不准确', suggestion: '建议核实并更正信息，确保准确一致' },
@@ -227,7 +227,7 @@ const pageVisualFailureInfo: Record<string, { reason: string; suggestion: string
 };
 
 const pageVisualSubFields: Record<string, Array<{ moduleName?: string; fieldName: string; mallData: string; defaultStatus: ContentStatus; overrideStatus?: ContentStatus; reason?: string; suggestion?: string; isImage?: boolean }>> = {
-  '语言书写检查': [
+  '语言书写错误检查': [
     { moduleName: 'Shop & Explores', fieldName: '模块名称', mallData: 'Shop & Explores', defaultStatus: 'normal', overrideStatus: 'abnormal', reason: '通过存在语言书写错误。Explore 在此处与 Shop 构成并列动作表达，不应使用第三人称单数 Explores。', suggestion: '通过存在语言书写错误。Explore 在此处与 Shop 构成并列动作表达，不应使用第三人称单数 Explores。' },
     { moduleName: 'Shop & Explore', fieldName: '模块中文字', mallData: 'Explore our latest flashlight and find the perfect light for your needs', defaultStatus: 'normal', overrideStatus: 'abnormal', reason: '存在单复数错误。flashlight 表示多个可供浏览的手电产品时，应使用复数形式 flashlights', suggestion: '存在单复数错误。flashlight 表示多个可供浏览的手电产品时，应使用复数形式 flashlights' },
     { moduleName: 'Rethink Light, Reimagine Style', fieldName: '模块名称', mallData: 'Rethink Light, Reimagine Style.', defaultStatus: 'normal', overrideStatus: 'normal' },
@@ -299,7 +299,7 @@ const productDetailFields = pageVisualCheckTypes.map((name, index) => ({
 }));
 
 const productDetailFailureInfo: Record<string, { reason: string; suggestion: string }> = {
-  '语言书写检查': { reason: '商品文案存在拼写或语法错误', suggestion: '建议修正拼写和语法错误' },
+  '语言书写错误检查': { reason: '商品文案存在拼写或语法错误', suggestion: '建议修正拼写和语法错误' },
   '文案合规检查': { reason: '商品文案不符合广告宣传规则', suggestion: '建议修改文案，确保符合平台规则' },
   '本地化合规': { reason: '商品表达不符合当地语言文化习惯', suggestion: '建议调整为符合本地用户习惯的表达' },
   '信息正确性审核': { reason: '价格、活动等信息不准确', suggestion: '建议核实并更正信息，确保准确一致' },
@@ -314,7 +314,7 @@ const productDetailFailureInfo: Record<string, { reason: string; suggestion: str
 };
 
 const productDetailSubFields: Record<string, Array<{ fieldName: string; mallData: string; defaultStatus: ContentStatus; overrideStatus?: ContentStatus; reason?: string; suggestion?: string; isImage?: boolean }>> = {
-  '语言书写检查': [
+  '语言书写错误检查': [
     { fieldName: '基本信息-商品副标题', mallData: 'Tactial Light；Up to 1,300 Lumens', defaultStatus: 'normal', overrideStatus: 'abnormal', reason: '"Tactial"拼写错误，正确为"Tactical"；"Lumens"首字母不应大写，建议使用"lumens"', suggestion: 'Tactical Light；Up to 1,300 lumens' },
     { fieldName: '销售信息-规格值描述', mallData: 'Max 1200LM；Runtime: 8Hour', defaultStatus: 'normal', overrideStatus: 'abnormal', reason: '"LM"单位写法不规范，建议使用"lm"；"8Hour"缺少空格，正确为"8 hour"', suggestion: 'Max 1200lm；Runtime: 8 hour' },
     { fieldName: '售后服务-更多说明', mallData: '30 Days return；2 years Warranty', defaultStatus: 'normal', overrideStatus: 'abnormal', reason: '"return"首字母不符合标题式写法；"Warranty"首字母不符合当前格式规范', suggestion: '30 Days Return；2 years warranty' },
@@ -1468,7 +1468,7 @@ export default function AuditDataPage() {
           {productDetailFields.map((field) => {
             let overallStatus: ContentStatus = currentProduct.pageVisualStatus?.[field.key as keyof typeof currentProduct.pageVisualStatus] || 'unknown';
             const productFailureOverrideInfo = failedProductField ? productFailureOverride[failedProductField] : null;
-            if (failedProductField && field.name === '语言书写检查') {
+            if (failedProductField && field.name === '语言书写错误检查') {
               overallStatus = 'abnormal';
             }
             const subFields = productDetailSubFields[field.name] || [];
@@ -1679,7 +1679,7 @@ export default function AuditDataPage() {
                 </Typography.Text>
                 <Table
                   columns={[
-                    ...((field.name === '语言书写检查' || field.name === '文案合规检查' || field.name === '本地化合规' || field.name === '信息正确性审核' || field.name === '图片完整性' || field.name === '图片质量' || field.name === '图片尺寸/比例' || field.name === '商品/主体展示' || field.name === '图片内容合规' || field.name === '有效性检查') ? [{ title: '模块名' as const, dataIndex: 'moduleName' as const, width: 120 }] : []),
+                    ...((field.name === '语言书写错误检查' || field.name === '文案合规检查' || field.name === '本地化合规' || field.name === '信息正确性审核' || field.name === '图片完整性' || field.name === '图片质量' || field.name === '图片尺寸/比例' || field.name === '商品/主体展示' || field.name === '图片内容合规' || field.name === '有效性检查') ? [{ title: '模块名' as const, dataIndex: 'moduleName' as const, width: 120 }] : []),
                     { title: (field.name === '模块完整性' || field.name === '排版/布局异常') ? '模块名' : '字段名', dataIndex: 'fieldName', width: 120 },
                     ...(field.name === '模块完整性' || field.name === '排版/布局异常' ? [] : [{ title: '当前数据' as const, dataIndex: 'mallData' as const, width: 200, render: (text: string, record: any) => record.isImage ? <img src={text} alt="图片" style={{ width: 80, height: 80, objectFit: 'contain' }} /> : text }]),
                     { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: string, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
