@@ -964,8 +964,9 @@ export default function AuditDataPage() {
         children: pageVisualCheckTypes.slice(0, 4).map((checkType) => ({
           title: checkType,
           dataIndex: 'pageVisualStatus',
-          width: 130,
+          width: checkType === '语言书写错误检查' ? 150 : 130,
           align: 'center' as const,
+          onHeaderCell: () => ({ style: { whiteSpace: 'nowrap' } }),
           render: (_: unknown, record: AuditObject) => renderPageVisualContentStatus(record, checkType),
         })),
       },
