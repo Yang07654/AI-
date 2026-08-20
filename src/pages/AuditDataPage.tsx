@@ -182,13 +182,19 @@ function renderPageVisualContentStatus(record: AuditObject, checkType: string) {
   return <Tooltip title={config.label}>{config.icon}</Tooltip>;
 }
 
-const productContentFields = [
-  { key: 'productTitle' as const, name: '商品标题', number: '1' },
-  { key: 'productMainImage' as const, name: '商品主图', number: '2' },
-  { key: 'productSubtitle' as const, name: '商品副标题', number: '3' },
-  { key: 'productDetail' as const, name: '商品详情', number: '4' },
-  { key: 'productSkuDetail' as const, name: '商品SKU详情', number: '5' },
-  { key: 'productLink' as const, name: '商品链接', number: '6' },
+interface ProductContentField {
+  key: string;
+  name: string;
+  number: string;
+}
+
+const productContentFields: ProductContentField[] = [
+  { key: 'productTitle', name: '商品标题', number: '1' },
+  { key: 'productMainImage', name: '商品主图', number: '2' },
+  { key: 'productSubtitle', name: '商品副标题', number: '3' },
+  { key: 'productDetail', name: '商品详情', number: '4' },
+  { key: 'productSkuDetail', name: '商品SKU详情', number: '5' },
+  { key: 'productLink', name: '商品链接', number: '6' },
 ];
 
 const pageVisualDetailFields = pageVisualCheckTypes.map((name, index) => ({
