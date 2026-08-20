@@ -52,6 +52,9 @@ export interface AuditObject {
   yearMonth?: string;
   pageId?: string;
   pageName?: string;
+  pageType?: string;
+  startTime?: string;
+  endTime?: string;
   pageEnabledTime?: string;
   carouselImage?: string;
   carouselLink?: string;
@@ -257,6 +260,9 @@ export const auditObjects: AuditObject[] = [
     yearMonth: '2026-08',
     pageId: '2090123456789012345',
     pageName: '开学季数码会场',
+    pageType: '专题页',
+    startTime: '2026-08-01 00:00',
+    endTime: '2026-08-31 23:59',
     pageEnabledTime: '2026-08-01 00:00',
     carouselImage: '开学季数码会场-Banner主图',
     carouselLink: 'https://www.olightstore.com/back-to-school',
@@ -308,6 +314,9 @@ export const auditObjects: AuditObject[] = [
     yearMonth: '2026-08',
     pageId: '2090234567890123456',
     pageName: '会员权益说明页',
+    pageType: '商城首页',
+    startTime: '2026-08-05 10:00',
+    endTime: '2026-12-31 23:59',
     pageEnabledTime: '2026-08-05 10:00',
     carouselImage: '会员权益升级-Banner主图',
     carouselLink: 'https://www.olightstore.com/member-benefits',
@@ -354,6 +363,9 @@ export const auditObjects: AuditObject[] = [
     yearMonth: '2026-07',
     pageId: '2090345678901234567',
     pageName: '夏季清仓主会场',
+    pageType: '官网首页',
+    startTime: '2026-07-15 00:00',
+    endTime: '2026-07-31 23:59',
     pageEnabledTime: '2026-07-15 00:00',
     carouselImage: '夏季清仓活动-Banner主图',
     carouselLink: 'https://www.olightstore.com/summer-clearance',
@@ -396,6 +408,9 @@ export const auditObjects: AuditObject[] = [
     yearMonth: '2026-08',
     pageId: '2090456789012345678',
     pageName: '新品首发专区',
+    pageType: '专题页',
+    startTime: '2026-08-03 08:00',
+    endTime: '2026-08-20 23:59',
     pageEnabledTime: '2026-08-03 08:00',
     carouselImage: '新品首发专区-Banner主图',
     carouselLink: 'https://www.olightstore.com/new-arrivals',
@@ -438,6 +453,9 @@ export const auditObjects: AuditObject[] = [
     yearMonth: '2026-09',
     pageId: '2090567890123456789',
     pageName: '秋季生活焕新会场',
+    pageType: '分类页',
+    startTime: '2026-09-01 00:00',
+    endTime: '2026-09-30 23:59',
     pageEnabledTime: '2026-09-01 00:00',
     carouselImage: '秋季生活焕新-Banner主图',
     carouselLink: 'https://www.olightstore.com/autumn-refresh',

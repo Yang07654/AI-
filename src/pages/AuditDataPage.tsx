@@ -1,10 +1,11 @@
 import { ArrowLeftOutlined, CheckCircleFilled, CloseOutlined, CopyOutlined, MinusOutlined, MoreOutlined, QuestionCircleFilled, SearchOutlined } from '@ant-design/icons';
-import { Button, Card, Collapse, Divider, Dropdown, Form, Input, Modal, Select, Space, Table, Tabs, Tag, Tooltip, Typography, message } from 'antd';
+import { Button, Card, Collapse, DatePicker, Divider, Dropdown, Form, Input, Modal, Select, Space, Table, Tabs, Tag, Tooltip, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { Key, ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { auditObjects, auditTypes, pageVisualCheckTypes, type AuditObject, type AuditStatus, type AssociationType, type AuditType, type ContentStatus, type ObjectType, type RiskItem, type RiskLevel } from '../mock/auditData';
 import { logRecords, type LogRecord, type LogReviewStatus, type PushStatus } from '../mock/logData';
+import dayjs from 'dayjs';
 
 const typeColorMap: Record<ObjectType, string> = {
   商品: 'blue',
@@ -292,6 +293,124 @@ const pageVisualSubFields: Record<string, Array<{ moduleName?: string; fieldName
   ],
 };
 
+const pageModuleFieldNames = [
+  '轮播图', '轮播图+两图片', '图文展示', '一行四商品',
+  '商品多组件模块', '品质保证', '网红背书', '博客', '品类页banner',
+  '预约有礼', '视频直播', '富文本', '类别', '商品列表',
+];
+
+const carouselReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
+  { rule: '语言书写错误检查', status: 'abnormal', reason: '"Limited-Time Only Never To Be Offered Again"语法和标点不自然；活动时间格式不统一。', suggestion: 'Available for a limited time only—never to be offered again. 活动时间统一为: August 10, 8:00 PM—August 24, 11:59 PM EDT' },
+  { rule: '文案合规检查', status: 'abnormal', reason: '"Never To Be Offered Again"属于绝对化、强稀缺性宣传；"Gift"和限时活动未清晰说明适用条件。', suggestion: '修改为: Available for a limited time, while supplies last. 并补充: Gift availability and promotional terms may vary.' },
+  { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '图片完整性', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '图片质量', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '图片内容合规', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '图片尺寸/比例', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '有效性检查', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '链接完整性', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '排版/布局异常', status: 'normal', reason: '-', suggestion: '-' },
+];
+
+const moduleReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
+  { rule: '语言书写错误检查', status: 'abnormal', reason: '"Limited-Time Only Never To Be Offered Again"语法和标点不自然；活动时间格式不统一。', suggestion: 'Available for a limited time only—never to be offered again. 活动时间统一为: August 10, 8:00 PM–August 24, 11:59 PM EDT' },
+  { rule: '文案合规检查', status: 'abnormal', reason: '"Never To Be Offered Again"属于绝对化、强稀缺性宣传；"Gift"和限时活动未清晰说明适用条件。', suggestion: '修改为: Available for a limited time, while supplies last. 并补充: Gift availability and promotional terms may vary.' },
+  { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '图片完整性', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '图片质量', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '图片内容合规', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '有效性检查', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '模块完整性', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '排版/布局异常', status: 'normal', reason: '-', suggestion: '-' },
+];
+
+const categoryReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
+  { rule: '语言书写错误检查', status: 'abnormal', reason: '页面显示"0 Product"，数量为 0 时应使用复数或更自然的表达；"Customize"作为分类名称不够统一。', suggestion: '将 0 Product 修改为 0 Products 或 No Products；将 Customize 修改为 Customization。' },
+  { rule: '文案合规检查', status: 'abnormal', reason: '"Weapon Mounted Lights (WMLs)"直接涉及武器安装和使用场景；"Tactical Flashlights"也带有较强的战术用途表述。', suggestion: '将分类名称改为更中性的：Mountable Lights' },
+  { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
+];
+
+const pageModuleFieldData: Record<string, Array<{
+  fieldName: string;
+  mallData: string;
+  status: ContentStatus;
+  reason: string;
+  suggestion: string;
+  isImage?: boolean;
+}>> = {
+  '轮播图': [
+    { fieldName: '图片1', mallData: 'https://example.com/carousel1.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
+    { fieldName: '图片2', mallData: 'https://example.com/carousel2.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
+    { fieldName: '图片3', mallData: 'https://example.com/carousel3.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
+  ],
+  '轮播图+两图片': [
+    { fieldName: '轮播图', mallData: 'https://example.com/banner.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
+    { fieldName: '图片1', mallData: 'https://example.com/img1.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
+    { fieldName: '图片2', mallData: 'https://example.com/img2.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
+  ],
+  '图文展示': [
+    { fieldName: '标题', mallData: 'Product Highlights', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '正文', mallData: 'Discover our latest collection with enhanced features.', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '图片', mallData: 'https://example.com/text-img.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
+  ],
+  '一行四商品': [
+    { fieldName: '商品1', mallData: 'SKU-001', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '商品2', mallData: 'SKU-002', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '商品3', mallData: 'SKU-003', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '商品4', mallData: 'SKU-004', status: 'normal', reason: '-', suggestion: '-' },
+  ],
+  '商品多组件模块': [
+    { fieldName: '商品卡片', mallData: 'SKU-005', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '价格标签', mallData: '$29.99', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '购买按钮', mallData: 'Add to Cart', status: 'normal', reason: '-', suggestion: '-' },
+  ],
+  '品质保证': [
+    { fieldName: '标题', mallData: 'Quality Guarantee', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '描述', mallData: 'All products undergo strict quality control.', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '图标', mallData: 'https://example.com/quality-icon.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
+  ],
+  '网红背书': [
+    { fieldName: '网红名称', mallData: '@influencer', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '推荐语', mallData: 'This flashlight is a game changer!', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '头像', mallData: 'https://example.com/avatar.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
+  ],
+  '博客': [
+    { fieldName: '文章标题', mallData: 'EDC Flashlight Buying Guide', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '发布日期', mallData: '2026-08-15', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '摘要', mallData: 'Everything you need to know about EDC flashlights.', status: 'normal', reason: '-', suggestion: '-' },
+  ],
+  '品类页banner': [
+    { fieldName: 'Banner图', mallData: 'https://example.com/category-banner.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
+    { fieldName: '标题', mallData: 'Flashlight Collection', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '链接', mallData: '/category/flashlights', status: 'normal', reason: '-', suggestion: '-' },
+  ],
+  '预约有礼': [
+    { fieldName: '活动标题', mallData: 'Sign Up & Get $10 Off', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '活动时间', mallData: '2026-08-01 ~ 2026-08-31', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '优惠码', mallData: 'WELCOME10', status: 'normal', reason: '-', suggestion: '-' },
+  ],
+  '视频直播': [
+    { fieldName: '直播标题', mallData: 'New Product Launch Live', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '直播时间', mallData: '2026-08-20 19:00', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '封面图', mallData: 'https://example.com/live-cover.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
+  ],
+  '富文本': [
+    { fieldName: '标题', mallData: 'About Our Products', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '正文', mallData: 'We are committed to providing high-quality products...', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '图片', mallData: 'https://example.com/rich-img.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
+  ],
+  '类别': [
+    { fieldName: '类别1', mallData: 'EDC Flashlights', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '类别2', mallData: 'Tactical Lights', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '类别3', mallData: 'Headlamps', status: 'normal', reason: '-', suggestion: '-' },
+  ],
+  '商品列表': [
+    { fieldName: '商品1', mallData: 'SKU-101', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '商品2', mallData: 'SKU-102', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '商品3', mallData: 'SKU-103', status: 'normal', reason: '-', suggestion: '-' },
+  ],
+};
+
 const productDetailFields = pageVisualCheckTypes.map((name, index) => ({
   key: name,
   name,
@@ -383,9 +502,124 @@ const productDetailSubFields: Record<string, Array<{ fieldName: string; mallData
   ],
 };
 
+const productTitleReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
+  { rule: '语言书写错误检查', status: 'abnormal', reason: '① "High Power"作前置定语时建议加连字符；② "Facebook Group Member Exclusive"表达不够自然', suggestion: 'Seeker 4 Pro Phantom Squadron High-Power Flashlight – Exclusive to Facebook Group Members' },
+  { rule: '文案合规检查', status: 'abnormal', reason: '"Facebook Group Member Exclusive"属于受社群资格和兑换码限制的促销表述，需明确限定条件', suggestion: 'Seeker 4 Pro Phantom Squadron High-Power Flashlight – Exclusive Offer for Verified Facebook Group Members' },
+  { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '信息正确性审核', status: 'normal', reason: '-', suggestion: '-' },
+];
+
+const productMainImageReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
+  { rule: '图片完整性', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '图片质量', status: 'abnormal', reason: '图片清晰度和细节辨识度不足，产品边缘及文字信息不够清楚。', suggestion: '更换为高清原图，建议尺寸不低于 2000×2000 像素，提升锐度并减少压缩痕迹。' },
+  { rule: '图片尺寸比例', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '商品主体展示', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '图片内容合规', status: 'normal', reason: '-', suggestion: '-' },
+];
+
+const productSubtitleReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
+  { rule: '语言书写错误检查', status: 'abnormal', reason: '尺寸单位写法不规范，0.91" × 0.71"容易产生歧义；句子整体表达略显生硬。', suggestion: 'while the spacious 0.91 in × 0.71 in window enables faster aiming and smoother visual tracking.' },
+  { rule: '文案合规检查', status: 'abnormal', reason: '"target acquisition"和"follow-up shots"涉及武器瞄准及连续射击场景，存在敏感营销表述。', suggestion: '将相关表述改为更中性的使用场景：The spacious window provides a clear sight picture for faster aiming and smoother visual tracking.' },
+  { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '信息正确性审核', status: 'normal', reason: '-', suggestion: '-' },
+];
+
+const productLinkReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
+  { rule: '有效性检查', status: 'normal', reason: '-', suggestion: '-' },
+];
+
+const productDetailSubFieldNames = [
+  '价格', '客户评价', '产品详情', '参数细节',
+  '常见问题解答', '手册', '博客', '邮箱地址',
+];
+
+const productPriceData = '$239.99\n会员最多可使用2398枚O币，每件物品可扣除11.99美元。\n4次无息60美元付款';
+
+const productPriceReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
+  { rule: '语言书写错误检查', status: 'abnormal', reason: '"4次无息60美元付款"语序不完整；金额格式和表达不够统一。', suggestion: '$239.99.会员最多可使用 2,398 枚 O 币，每件商品最高可抵扣 $11.99。支持 4 期免息分期付款，每期约 $60。' },
+  { rule: '文案合规检查', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
+];
+
+const productReviewReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
+  { rule: '文案合规检查', status: 'abnormal', reason: '客服回复内容包含较强促销与背书用语，如"您最喜欢的"、"耐用性让您印象深刻"，存在夸大评价与主观营销倾向。', suggestion: '感谢您分享使用体验！很高兴得知您对 OSIGHT SE DPP 的耐用性表示满意。如您有其他意见或建议，欢迎随时与我们联系！' },
+  { rule: '图片内容合规', status: 'normal', reason: '-', suggestion: '-' },
+];
+
+const productDetailReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
+  { rule: '语言书写错误检查', status: 'abnormal', reason: '"in any lighting condition"中"condition"建议使用复数形式"conditions"；"target acquisition"和"follow-up shots"等表达过于专业，语义较强。', suggestion: 'Provides reliable illumination in any lighting conditions. The spacious window offers a clear sight picture for faster and smoother visual tracking.' },
+  { rule: '文案合规检查', status: 'abnormal', reason: '多次出现武器相关术语，如"shooting scenario"、"follow-up shots"、"target acquisition"，存在敏感营销表述。', suggestion: '建议将武器相关术语替换为中性使用场景描述，如"various scenarios"、"continuous observation"、"quick target identification"。' },
+  { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '图片完整性', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '图片质量', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '图片尺寸比例', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '图片内容合规', status: 'abnormal', reason: '图片中展示枪械携带场景，出现"concealed carry"等武器相关术语，存在敏感内容。', suggestion: '建议移除涉及枪械携带场景的图片，替换为产品单独展示或非敏感使用场景的图片。' },
+];
+
+const productParamsReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
+  { rule: '语言书写错误检查', status: 'abnormal', reason: '"工作温床"存在明显用词错误，应为"工作温度"；"光学材料"与"7075-T6 铝制材质"不匹配；部分单位和字段表达不够统一。', suggestion: '工作温度：-22°F 至 140°F (-30°C 至 60°C)\n尺寸（长×宽×高）：1.83 x 1.12 x 1.11 英寸（46.4 × 28.5 × 28.2 毫米）' },
+  { rule: '文案合规检查', status: 'abnormal', reason: '"隐蔽携带"、"自卫"、"家庭防护"等用途涉及防身及安保场景，存在敏感营销表述。', suggestion: '将用途修改为：日常携带、户外活动、应急照明、维修照明和训练使用。' },
+  { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '信息正确性检查', status: 'normal', reason: '-', suggestion: '-' },
+];
+
+const productFaqReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
+  { rule: '语言书写错误检查', status: 'abnormal', reason: '部分表达不够自然，如"DPP迹"、"DPP切割滑套"等译法生硬；中英文之间缺少空格；标点格式不统一。', suggestion: '1. 什么是DPP安装规格？\n2. OSIGHT SE DPP是否兼容所有DPP安装规格的平台？' },
+  { rule: '文案合规检查', status: 'abnormal', reason: '"DPP切割滑套"等术语涉及枪械部件改装，可能构成武器改装或使用指导，存在敏感内容风险。', suggestion: '将相关问题修改为更中性的产品兼容性表述，如：OSIGHT SE DPP适用于哪些DPP安装规格？' },
+  { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
+];
+
+const productManualReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
+  { rule: '语言书写错误检查', status: 'abnormal', reason: '文件名中英文混用，产品名称与地区信息连接不清晰，"东南DPP"表达不规范、语义模糊。', suggestion: '将文件名改为标准化格式：OSIGHT SE DPP 用户手册（东南亚地区）.pdf 或 OSIGHT SE DPP User Manual – Southeast Asia.pdf' },
+  { rule: '文案合规检查', status: 'abnormal', reason: '仅凭截图文件名无法确认手册正文内容是否包含敏感或违规内容，需进一步检查 PDF 正文。', suggestion: '保留产品与地区信息，避免在文件名中出现武器使用、改装或攻击性描述，推荐：OSIGHT SE DPP 用户手册（东南亚地区）.pdf' },
+  { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
+];
+
+const productEmailReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
+  { rule: '语言书写错误检查', status: 'abnormal', reason: '重复用词"优惠码九折优惠码"，表达不完整"接收:"，中英文格式不统一。', suggestion: '立即订阅我们的邮件通讯，即可接收：1. 10% 折扣码 2. 50 积分和 50 枚 O 币' },
+  { rule: '文案合规检查', status: 'abnormal', reason: '折扣码适用范围和排除项仅以英文展示；营销邮件的隐私政策和退订方式不明确。', suggestion: '10% 折扣码不适用于 XDR 及促销商品。订阅即表示同意接收营销邮件，您可随时通过邮件底部链接退订。' },
+  { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
+];
+
+const productBlogReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
+  { rule: '语言书写错误检查', status: 'abnormal', reason: '第一条标题中"2026 年级"用词错误；第三条标题中"手电筒闪光灯促销"表达重复且不自然。', suggestion: '1. Olight Seeker 4 Pro Phantom Squadron 评测：2026年 EDC 战术手电筒\n2. 庆祝美国建国 250 周年：Olight 推出 ArkPro Liberty Lines 与 Oknife 联名套装\n使用客观、准确的表达，并明确活动主题：庆祝美国建国 250 周年：Olight 推出 ArkPro Liberty Lines 与 Oknife 联名套装' },
+  { rule: '文案合规检查', status: 'abnormal', reason: '部分标题使用"独家"等促销用语但未明确限定条件；"美国航空 250 周年"等表述可能造成事实或语义误解。', suggestion: '1. Olight Seeker 4 Pro Phantom Squadron 评测：2026年 EDC 战术手电筒\n2. 庆祝美国建国 250 周年：Olight 推出 ArkPro Liberty Lines 与 Oknife 联名套装\n使用客观、准确的表达，并明确活动主题：庆祝美国建国 250 周年：Olight 推出 ArkPro Liberty Lines 与 Oknife 联名套装' },
+  { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '图片完整性', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '图片质量', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '图片内容合规', status: 'normal', reason: '-', suggestion: '-' },
+];
+
+const productDetailSubFieldData: Record<string, Array<{ fieldName: string; mallData: string; status: ContentStatus; reason: string; suggestion: string }>> = {
+  '价格': [
+    { fieldName: '商品价格', mallData: '$199.99', status: 'normal', reason: '-', suggestion: '-' },
+  ],
+  '客户评价': [
+    { fieldName: '评价内容', mallData: 'Great product, highly recommended!', status: 'normal', reason: '-', suggestion: '-' },
+  ],
+  '产品详情': [
+    { fieldName: '详情内容', mallData: 'Advanced anti-reflective lens coatings', status: 'normal', reason: '-', suggestion: '-' },
+  ],
+  '参数细节': [
+    { fieldName: '技术参数', mallData: 'Output: 1300 lumens; Runtime: 8 hours', status: 'normal', reason: '-', suggestion: '-' },
+  ],
+  '常见问题解答': [
+    { fieldName: 'FAQ内容', mallData: 'How to use the flashlight?', status: 'normal', reason: '-', suggestion: '-' },
+  ],
+  '手册': [
+    { fieldName: '用户手册', mallData: 'Download user manual PDF', status: 'normal', reason: '-', suggestion: '-' },
+  ],
+  '博客': [
+    { fieldName: '博客文章', mallData: 'Tactical Flashlight Buyer Guide', status: 'normal', reason: '-', suggestion: '-' },
+  ],
+  '邮箱地址': [
+    { fieldName: '联系邮箱', mallData: 'support@olight.com', status: 'normal', reason: '-', suggestion: '-' },
+  ],
+};
+
 const productSubFields: Record<string, Array<{ fieldName: string; mallData: string; defaultStatus: ContentStatus }>> = {
   productTitle: [
-    { fieldName: '标题内容', mallData: 'ArkPro Liberty Lines | Limited Edition Flat EDC Flashlight', defaultStatus: 'normal' },
+    { fieldName: '标题内容', mallData: 'Seeker 4 Pro Phantom Squadron High Power Flashlight - Facebook Group Member Exclusive', defaultStatus: 'normal' },
     { fieldName: '标题格式', mallData: '符合字数与格式规范', defaultStatus: 'normal' },
   ],
   productMainImage: [
@@ -463,7 +697,8 @@ export default function AuditDataPage() {
   const [pageSelectedRowKeys, setPageSelectedRowKeys] = useState<Key[]>([]);
   const [pageKeyword, setPageKeyword] = useState('');
   const [pageStore, setPageStore] = useState<string>();
-  const [pageYearMonth, setPageYearMonth] = useState<string>();
+  const [pageStartTime, setPageStartTime] = useState<dayjs.Dayjs | null>(null);
+  const [pageEndTime, setPageEndTime] = useState<dayjs.Dayjs | null>(null);
   const [currentLogRecord, setCurrentLogRecord] = useState<AuditObject | null>(null);
   const [logTraceId, setLogTraceId] = useState('');
   const [logPushStatus, setLogPushStatus] = useState<string>();
@@ -481,7 +716,6 @@ export default function AuditDataPage() {
   const marketingPlanOptions = useMemo(() => [...new Set(productAuditObjects.map((item) => item.marketingPlan))], [productAuditObjects]);
   const productCategoryOptions = useMemo(() => [...new Set(productAuditObjects.map((item) => item.productCategory))], [productAuditObjects]);
   const pageStoreOptions = useMemo(() => [...new Set(pageAuditObjects.map((item) => item.storeName.split('\n').pop() || ''))], [pageAuditObjects]);
-  const pageYearMonthOptions = useMemo(() => [...new Set(pageAuditObjects.map((item) => item.yearMonth).filter(Boolean) as string[])], [pageAuditObjects]);
   const detailFieldNameFilters = useMemo(() => {
     const fieldNames = new Set<string>(auditTypes);
 
@@ -530,13 +764,17 @@ export default function AuditDataPage() {
         Boolean(item.pageId?.includes(normalizedKeyword)) ||
         Boolean(item.pageName?.includes(normalizedKeyword));
 
+      const matchStartTime = !pageStartTime || (item.startTime && dayjs(item.startTime).isAfter(pageStartTime));
+      const matchEndTime = !pageEndTime || (item.endTime && dayjs(item.endTime).isBefore(pageEndTime));
+
       return (
         matchedKeyword &&
         (!pageStore || item.storeName.includes(pageStore)) &&
-        (!pageYearMonth || item.yearMonth === pageYearMonth)
+        matchStartTime &&
+        matchEndTime
       );
     });
-  }, [pageKeyword, pageStore, pageYearMonth, pageAuditObjects]);
+  }, [pageKeyword, pageStore, pageStartTime, pageEndTime, pageAuditObjects]);
 
   const filteredLogRecords = useMemo(() => {
     if (!currentLogRecord) return [];
@@ -598,12 +836,14 @@ export default function AuditDataPage() {
   };
 
   const exportPageAuditData = () => {
-    const headers = ['年月', '店铺', '页面ID', '页面名称', '页面启用时间'];
+    const headers = ['店铺', '页面ID', '页面名称', '页面类别', '开始时间', '结束时间', '页面启用时间'];
     const rows = filteredPageAuditObjects.map((record) => [
-      record.yearMonth || '/',
       record.storeName,
       record.pageId || '/',
       record.pageName || '/',
+      record.pageType || '/',
+      record.startTime || '/',
+      record.endTime || '/',
       record.pageEnabledTime || '/',
     ]);
 
@@ -804,7 +1044,7 @@ export default function AuditDataPage() {
         </Space>
       ),
     };
-    const productContentColumns: ColumnsType<AuditObject> = [
+    const productBasicInfoColumns: ColumnsType<AuditObject> = [
       {
         title: '商品标题',
         dataIndex: 'contentStatus',
@@ -827,20 +1067,6 @@ export default function AuditDataPage() {
         render: (_, record) => renderProductContentStatus(record, 'productSubtitle', '商品副标题'),
       },
       {
-        title: '商品详情',
-        dataIndex: 'contentStatus',
-        width: 100,
-        align: 'center' as const,
-        render: (_, record) => renderProductContentStatus(record, 'productDetail', '商品详情'),
-      },
-      {
-        title: '商品SKU详情',
-        dataIndex: 'contentStatus',
-        width: 110,
-        align: 'center' as const,
-        render: (_, record) => renderProductContentStatus(record, 'productSkuDetail', '商品SKU详情'),
-      },
-      {
         title: '商品链接',
         dataIndex: 'contentStatus',
         width: 100,
@@ -848,6 +1074,16 @@ export default function AuditDataPage() {
         render: (_, record) => renderProductContentStatus(record, 'productLink', '商品链接'),
       },
     ];
+    const productDetailSubColumns: ColumnsType<AuditObject> = [
+      '价格', '客户评价', '产品详情', '参数细节',
+      '常见问题解答', '手册', '博客', '邮箱地址',
+    ].map((subName) => ({
+      title: subName,
+      dataIndex: 'contentStatus',
+      width: 90,
+      align: 'center' as const,
+      render: () => renderContentStatus('normal'),
+    }));
 
     return [
       productActionColumn,
@@ -856,8 +1092,16 @@ export default function AuditDataPage() {
         children: baseInfoGroupColumn.children || [],
       },
       {
-        title: '复核页面1',
-        children: productContentColumns,
+        title: '商品基本信息',
+        children: productBasicInfoColumns,
+      },
+      {
+        title: '商品详情',
+        children: productDetailSubColumns,
+      },
+      {
+        title: '商品SKU详情',
+        children: productDetailSubColumns,
       },
       latestAuditTimeColumn,
     ];
@@ -904,11 +1148,6 @@ export default function AuditDataPage() {
         title: '基本信息',
         children: [
           {
-            title: '年月',
-            dataIndex: 'yearMonth',
-            width: 120,
-          },
-          {
             title: '店铺',
             dataIndex: 'storeName',
             width: 140,
@@ -953,53 +1192,35 @@ export default function AuditDataPage() {
             ),
           },
           {
-            title: '页面启用时间',
-            dataIndex: 'pageEnabledTime',
+            title: '页面类别',
+            dataIndex: 'pageType',
+            width: 120,
+          },
+          {
+            title: '开始时间',
+            dataIndex: 'startTime',
+            width: 170,
+          },
+          {
+            title: '结束时间',
+            dataIndex: 'endTime',
             width: 170,
           },
         ],
       },
-      {
-        title: '文本复核',
-        children: pageVisualCheckTypes.slice(0, 4).map((checkType) => ({
-          title: checkType,
-          dataIndex: 'pageVisualStatus',
-          width: checkType === '语言书写错误检查' ? 150 : 130,
-          align: 'center' as const,
-          onHeaderCell: () => ({ style: { whiteSpace: 'nowrap' } }),
-          render: (_: unknown, record: AuditObject) => renderPageVisualContentStatus(record, checkType),
-        })),
-      },
-      {
-        title: '图片复核',
-        children: pageVisualCheckTypes.slice(4, 9).map((checkType) => ({
-          title: checkType,
-          dataIndex: 'pageVisualStatus',
-          width: 130,
-          align: 'center' as const,
-          render: (_: unknown, record: AuditObject) => renderPageVisualContentStatus(record, checkType),
-        })),
-      },
-      {
-        title: '有效性检查',
-        children: pageVisualCheckTypes.slice(9, 10).map((checkType) => ({
-          title: checkType,
-          dataIndex: 'pageVisualStatus',
-          width: 130,
-          align: 'center' as const,
-          render: (_: unknown, record: AuditObject) => renderPageVisualContentStatus(record, checkType),
-        })),
-      },
-      {
-        title: '布局复核',
-        children: pageVisualCheckTypes.slice(10).map((checkType) => ({
-          title: checkType,
-          dataIndex: 'pageVisualStatus',
-          width: 130,
-          align: 'center' as const,
-          render: (_: unknown, record: AuditObject) => renderPageVisualContentStatus(record, checkType),
-        })),
-      },
+      ...[
+        '轮播图', '轮播图+两图片', '图文展示', '一行四商品',
+        '商品多组件模块', '品质保证', '网红背书', '博客', '品类页banner',
+        '预约有礼', '视频直播', '富文本',
+        '类别', '商品列表',
+      ].map((moduleName) => ({
+        title: moduleName,
+        dataIndex: 'pageVisualStatus',
+        width: 130,
+        align: 'center' as const,
+        onHeaderCell: () => ({ style: { whiteSpace: 'nowrap' } }),
+        render: () => renderContentStatus('normal'),
+      })),
       {
         title: '最近复核时间',
         dataIndex: 'latestAuditTime',
@@ -1442,7 +1663,7 @@ export default function AuditDataPage() {
           icon={<ArrowLeftOutlined />}
           onClick={() => setCurrentProduct(null)}
         />
-        <Typography.Text strong>复核页面1</Typography.Text>
+        <Typography.Text strong>商品视觉复核详情</Typography.Text>
       </Space>
     );
 
@@ -1528,6 +1749,303 @@ export default function AuditDataPage() {
       </>
     );
 
+    const renderProductDetailPageContent = () => (
+      <>
+        <div style={{ marginBottom: 16 }}>
+          <span style={{ marginRight: 8 }}>复核状态：</span>
+          <Select
+            mode="multiple"
+            value={productDetailStatusFilter}
+            onChange={(value: ContentStatus[]) => setProductDetailStatusFilter(value)}
+            options={[
+              { label: '复核通过', value: 'normal' },
+              { label: '复核失败', value: 'abnormal' },
+              { label: '未复核', value: 'unknown' },
+              { label: '无需复核', value: 'empty' },
+            ]}
+            style={{ width: 400 }}
+            placeholder="选择复核状态"
+            allowClear
+          />
+        </div>
+        {productDetailSubFieldNames.map((subFieldName) => {
+          if (subFieldName === '价格') {
+            const priceTableData = productPriceReviewRules
+              .filter((r) => productDetailStatusFilter.includes(r.status))
+              .map((r, idx) => ({
+                key: `price-rule-${idx}`,
+                mallData: productPriceData,
+                rule: r.rule,
+                statusLabel: contentStatusConfig[r.status].label,
+                statusColor: contentStatusConfig[r.status].color,
+                itemStatus: r.status,
+                reason: r.reason,
+                suggestion: r.suggestion,
+              }));
+            if (priceTableData.length === 0) return null;
+            return (
+              <div key={subFieldName} style={{ marginBottom: 24 }}>
+                <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
+                <Table
+                  columns={[
+                    { title: '当前数据', dataIndex: 'mallData', width: 200 },
+                    { title: '复核规则', dataIndex: 'rule', width: 120 },
+                    { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
+                    { title: '原因', dataIndex: 'reason', width: 250 },
+                    { title: 'AI建议修改', dataIndex: 'suggestion', width: 250 },
+                  ]}
+                  dataSource={priceTableData}
+                  pagination={false}
+                  size="small"
+                />
+              </div>
+            );
+          }
+          if (subFieldName === '客户评价') {
+            const reviewTableData = productReviewReviewRules
+              .filter((r) => productDetailStatusFilter.includes(r.status))
+              .map((r, idx) => ({
+                key: `review-rule-${idx}`,
+                rule: r.rule,
+                statusLabel: contentStatusConfig[r.status].label,
+                statusColor: contentStatusConfig[r.status].color,
+                itemStatus: r.status,
+                reason: r.reason,
+                suggestion: r.suggestion,
+              }));
+            if (reviewTableData.length === 0) return null;
+            return (
+              <div key={subFieldName} style={{ marginBottom: 24 }}>
+                <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
+                <Table
+                  columns={[
+                    { title: '复核规则', dataIndex: 'rule', width: 120 },
+                    { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
+                    { title: '原因', dataIndex: 'reason', width: 300 },
+                    { title: 'AI建议修改', dataIndex: 'suggestion', width: 300 },
+                  ]}
+                  dataSource={reviewTableData}
+                  pagination={false}
+                  size="small"
+                />
+              </div>
+            );
+          }
+          if (subFieldName === '产品详情') {
+            const detailTableData = productDetailReviewRules
+              .filter((r) => productDetailStatusFilter.includes(r.status))
+              .map((r, idx) => ({
+                key: `detail-rule-${idx}`,
+                rule: r.rule,
+                statusLabel: contentStatusConfig[r.status].label,
+                statusColor: contentStatusConfig[r.status].color,
+                itemStatus: r.status,
+                reason: r.reason,
+                suggestion: r.suggestion,
+              }));
+            if (detailTableData.length === 0) return null;
+            return (
+              <div key={subFieldName} style={{ marginBottom: 24 }}>
+                <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
+                <Table
+                  columns={[
+                    { title: '复核规则', dataIndex: 'rule', width: 120 },
+                    { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
+                    { title: '原因', dataIndex: 'reason', width: 300 },
+                    { title: 'AI建议修改', dataIndex: 'suggestion', width: 300 },
+                  ]}
+                  dataSource={detailTableData}
+                  pagination={false}
+                  size="small"
+                />
+              </div>
+            );
+          }
+          if (subFieldName === '参数细节') {
+            const paramsTableData = productParamsReviewRules
+              .filter((r) => productDetailStatusFilter.includes(r.status))
+              .map((r, idx) => ({
+                key: `params-rule-${idx}`,
+                rule: r.rule,
+                statusLabel: contentStatusConfig[r.status].label,
+                statusColor: contentStatusConfig[r.status].color,
+                itemStatus: r.status,
+                reason: r.reason,
+                suggestion: r.suggestion,
+              }));
+            if (paramsTableData.length === 0) return null;
+            return (
+              <div key={subFieldName} style={{ marginBottom: 24 }}>
+                <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
+                <Table
+                  columns={[
+                    { title: '复核规则', dataIndex: 'rule', width: 120 },
+                    { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
+                    { title: '原因', dataIndex: 'reason', width: 300 },
+                    { title: 'AI建议修改', dataIndex: 'suggestion', width: 300 },
+                  ]}
+                  dataSource={paramsTableData}
+                  pagination={false}
+                  size="small"
+                />
+              </div>
+            );
+          }
+          if (subFieldName === '常见问题解答') {
+            const faqTableData = productFaqReviewRules
+              .filter((r) => productDetailStatusFilter.includes(r.status))
+              .map((r, idx) => ({
+                key: `faq-rule-${idx}`,
+                rule: r.rule,
+                statusLabel: contentStatusConfig[r.status].label,
+                statusColor: contentStatusConfig[r.status].color,
+                itemStatus: r.status,
+                reason: r.reason,
+                suggestion: r.suggestion,
+              }));
+            if (faqTableData.length === 0) return null;
+            return (
+              <div key={subFieldName} style={{ marginBottom: 24 }}>
+                <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
+                <Table
+                  columns={[
+                    { title: '复核规则', dataIndex: 'rule', width: 120 },
+                    { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
+                    { title: '原因', dataIndex: 'reason', width: 300 },
+                    { title: 'AI建议修改', dataIndex: 'suggestion', width: 300 },
+                  ]}
+                  dataSource={faqTableData}
+                  pagination={false}
+                  size="small"
+                />
+              </div>
+            );
+          }
+          if (subFieldName === '手册') {
+            const manualTableData = productManualReviewRules
+              .filter((r) => productDetailStatusFilter.includes(r.status))
+              .map((r, idx) => ({
+                key: `manual-rule-${idx}`,
+                rule: r.rule,
+                statusLabel: contentStatusConfig[r.status].label,
+                statusColor: contentStatusConfig[r.status].color,
+                itemStatus: r.status,
+                reason: r.reason,
+                suggestion: r.suggestion,
+              }));
+            if (manualTableData.length === 0) return null;
+            return (
+              <div key={subFieldName} style={{ marginBottom: 24 }}>
+                <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
+                <Table
+                  columns={[
+                    { title: '复核规则', dataIndex: 'rule', width: 120 },
+                    { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
+                    { title: '原因', dataIndex: 'reason', width: 300 },
+                    { title: 'AI建议修改', dataIndex: 'suggestion', width: 300 },
+                  ]}
+                  dataSource={manualTableData}
+                  pagination={false}
+                  size="small"
+                />
+              </div>
+            );
+          }
+          if (subFieldName === '邮箱地址') {
+            const emailTableData = productEmailReviewRules
+              .filter((r) => productDetailStatusFilter.includes(r.status))
+              .map((r, idx) => ({
+                key: `email-rule-${idx}`,
+                rule: r.rule,
+                statusLabel: contentStatusConfig[r.status].label,
+                statusColor: contentStatusConfig[r.status].color,
+                itemStatus: r.status,
+                reason: r.reason,
+                suggestion: r.suggestion,
+              }));
+            if (emailTableData.length === 0) return null;
+            return (
+              <div key={subFieldName} style={{ marginBottom: 24 }}>
+                <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
+                <Table
+                  columns={[
+                    { title: '复核规则', dataIndex: 'rule', width: 120 },
+                    { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
+                    { title: '原因', dataIndex: 'reason', width: 300 },
+                    { title: 'AI建议修改', dataIndex: 'suggestion', width: 300 },
+                  ]}
+                  dataSource={emailTableData}
+                  pagination={false}
+                  size="small"
+                />
+              </div>
+            );
+          }
+          if (subFieldName === '博客') {
+            const blogTableData = productBlogReviewRules
+              .filter((r) => productDetailStatusFilter.includes(r.status))
+              .map((r, idx) => ({
+                key: `blog-rule-${idx}`,
+                rule: r.rule,
+                statusLabel: contentStatusConfig[r.status].label,
+                statusColor: contentStatusConfig[r.status].color,
+                itemStatus: r.status,
+                reason: r.reason,
+                suggestion: r.suggestion,
+              }));
+            if (blogTableData.length === 0) return null;
+            return (
+              <div key={subFieldName} style={{ marginBottom: 24 }}>
+                <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
+                <Table
+                  columns={[
+                    { title: '复核规则', dataIndex: 'rule', width: 120 },
+                    { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
+                    { title: '原因', dataIndex: 'reason', width: 300 },
+                    { title: 'AI建议修改', dataIndex: 'suggestion', width: 300 },
+                  ]}
+                  dataSource={blogTableData}
+                  pagination={false}
+                  size="small"
+                />
+              </div>
+            );
+          }
+          const subData = productDetailSubFieldData[subFieldName] || [];
+          const tableData = subData
+            .map((sf, idx) => ({
+              key: `${subFieldName}-${idx}`,
+              fieldName: sf.fieldName,
+              mallData: sf.mallData,
+              statusLabel: contentStatusConfig[sf.status].label,
+              statusColor: contentStatusConfig[sf.status].color,
+              itemStatus: sf.status,
+              reason: sf.reason,
+              suggestion: sf.suggestion,
+            }))
+            .filter((row) => productDetailStatusFilter.includes(row.itemStatus));
+          if (tableData.length === 0) return null;
+          return (
+            <div key={subFieldName} style={{ marginBottom: 24 }}>
+              <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
+              <Table
+                columns={[
+                  { title: '字段名', dataIndex: 'fieldName', width: 120 },
+                  { title: '当前数据', dataIndex: 'mallData', width: 200 },
+                  { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
+                  { title: '原因', dataIndex: 'reason', width: 250 },
+                  { title: 'AI建议修改', dataIndex: 'suggestion', width: 250 },
+                ]}
+                dataSource={tableData}
+                pagination={false}
+                size="small"
+              />
+            </div>
+          );
+        })}
+      </>
+    );
+
     return (
       <Card title={cardTitle}>
         <Tabs
@@ -1535,7 +2053,7 @@ export default function AuditDataPage() {
           items={[
             {
               key: 'product-info',
-              label: '商品信息',
+              label: '商品基本信息',
               children: (
                 <>
                   <div style={{ marginBottom: 16 }}>
@@ -1555,50 +2073,484 @@ export default function AuditDataPage() {
                       allowClear
                     />
                   </div>
-                  <Table
-                    columns={[
-                      { title: '字段名', dataIndex: 'fieldName', width: 120 },
-                      { title: '当前数据', dataIndex: 'mallData', width: 200, render: (text: any, record: any) => record.key === 'productMainImage' && text !== '-' ? <img src={text} alt="商品主图" style={{ width: 80, height: 80, objectFit: 'contain' }} /> : text },
-                      { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
-                      { title: '原因', dataIndex: 'reason', width: 250 },
-                      { title: 'AI建议修改方式', dataIndex: 'suggestion', width: 250 },
-                    ]}
-                    dataSource={productContentFields.filter((f) => f.key !== 'productDetail' && f.key !== 'productSkuDetail').map((field) => {
-                      const overallStatus: ContentStatus = currentProduct.contentStatus?.[field.key as keyof typeof currentProduct.contentStatus] || 'unknown';
-                      const subFields = productSubFields[field.key] || [];
-                      const override = productFailureOverride[field.name];
-                      const riskItem = overallStatus === 'abnormal'
-                        ? Object.values(currentProduct.risks).flat().find((risk) => risk.fieldName.includes(field.name))
-                        : null;
-                      const failureReason = override?.reason || riskItem?.description || '当前字段复核失败，请检查商城内容。';
-                      const aiSuggestion = override?.suggestion || riskItem?.suggestion || '建议检查并修正相关内容。';
-                      const config = contentStatusConfig[overallStatus];
-                      return {
-                        key: field.key,
-                        fieldName: field.name,
-                        mallData: subFields[0]?.mallData || '-',
-                        statusLabel: config.label,
-                        statusColor: config.color,
-                        itemStatus: overallStatus,
-                        reason: overallStatus === 'abnormal' ? failureReason : '-',
-                        suggestion: overallStatus === 'abnormal' ? aiSuggestion : '-',
-                      };
-                    }).filter((row) => productDetailStatusFilter.includes(row.itemStatus))}
-                    pagination={{ pageSize: 5, showSizeChanger: false, showTotal: (total: number) => `共 ${total} 条` }}
-                    size="small"
-                  />
+                  {productContentFields.filter((f) => f.key !== 'productDetail' && f.key !== 'productSkuDetail').map((field) => {
+                    if (field.key === 'productTitle') {
+                      const titleData = 'Seeker 4 Pro Phantom Squadron High Power Flashlight - Facebook Group Member Exclusive';
+                      const titleTableData = productTitleReviewRules
+                        .filter((r) => productDetailStatusFilter.includes(r.status))
+                        .map((r, idx) => ({
+                          key: `productTitle-rule-${idx}`,
+                          mallData: titleData,
+                          rule: r.rule,
+                          statusLabel: contentStatusConfig[r.status].label,
+                          statusColor: contentStatusConfig[r.status].color,
+                          itemStatus: r.status,
+                          reason: r.reason,
+                          suggestion: r.suggestion,
+                        }));
+                      if (titleTableData.length === 0) return null;
+                      return (
+                        <div key={field.key} style={{ marginBottom: 24 }}>
+                          <h4 style={{ marginBottom: 8 }}>{field.name}</h4>
+                          <Table
+                            columns={[
+                              { title: '当前数据', dataIndex: 'mallData', width: 200 },
+                              { title: '复核规则', dataIndex: 'rule', width: 120 },
+                              { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
+                              { title: '原因', dataIndex: 'reason', width: 250 },
+                              { title: 'AI建议修改', dataIndex: 'suggestion', width: 250 },
+                            ]}
+                            dataSource={titleTableData}
+                            pagination={false}
+                            size="small"
+                          />
+                        </div>
+                      );
+                    }
+                    if (field.key === 'productMainImage') {
+                      const imageData = `${import.meta.env.BASE_URL}product-main-image.webp`;
+                      const imageTableData = productMainImageReviewRules
+                        .filter((r) => productDetailStatusFilter.includes(r.status))
+                        .map((r, idx) => ({
+                          key: `productMainImage-rule-${idx}`,
+                          mallData: imageData,
+                          rule: r.rule,
+                          statusLabel: contentStatusConfig[r.status].label,
+                          statusColor: contentStatusConfig[r.status].color,
+                          itemStatus: r.status,
+                          reason: r.reason,
+                          suggestion: r.suggestion,
+                        }));
+                      if (imageTableData.length === 0) return null;
+                      return (
+                        <div key={field.key} style={{ marginBottom: 24 }}>
+                          <h4 style={{ marginBottom: 8 }}>{field.name}</h4>
+                          <Table
+                            columns={[
+                              { title: '当前数据', dataIndex: 'mallData', width: 120, render: (text: any) => <img src={text} alt="商品主图" style={{ width: 80, height: 80, objectFit: 'contain' }} /> },
+                              { title: '复核规则', dataIndex: 'rule', width: 120 },
+                              { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
+                              { title: '原因', dataIndex: 'reason', width: 250 },
+                              { title: 'AI建议修改', dataIndex: 'suggestion', width: 250 },
+                            ]}
+                            dataSource={imageTableData}
+                            pagination={false}
+                            size="small"
+                          />
+                        </div>
+                      );
+                    }
+                    if (field.key === 'productSubtitle') {
+                      const subtitleData = 'Large Field of View: Advanced anti-reflective lens coatings maximize light transmission for a clear sight picture, while the large 0.91" × 0.71" window enables faster target acquisition and quicker follow-up shots.';
+                      const subtitleTableData = productSubtitleReviewRules
+                        .filter((r) => productDetailStatusFilter.includes(r.status))
+                        .map((r, idx) => ({
+                          key: `productSubtitle-rule-${idx}`,
+                          mallData: subtitleData,
+                          rule: r.rule,
+                          statusLabel: contentStatusConfig[r.status].label,
+                          statusColor: contentStatusConfig[r.status].color,
+                          itemStatus: r.status,
+                          reason: r.reason,
+                          suggestion: r.suggestion,
+                        }));
+                      if (subtitleTableData.length === 0) return null;
+                      return (
+                        <div key={field.key} style={{ marginBottom: 24 }}>
+                          <h4 style={{ marginBottom: 8 }}>{field.name}</h4>
+                          <Table
+                            columns={[
+                              { title: '当前数据', dataIndex: 'mallData', width: 200 },
+                              { title: '复核规则', dataIndex: 'rule', width: 120 },
+                              { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
+                              { title: '原因', dataIndex: 'reason', width: 250 },
+                              { title: 'AI建议修改', dataIndex: 'suggestion', width: 250 },
+                            ]}
+                            dataSource={subtitleTableData}
+                            pagination={false}
+                            size="small"
+                          />
+                        </div>
+                      );
+                    }
+                    if (field.key === 'productLink') {
+                      const linkData = 'https://www.olight.com/store/osight-se-enclosed-red-dot-sight-dpp-footprint-optic';
+                      const linkTableData = productLinkReviewRules
+                        .filter((r) => productDetailStatusFilter.includes(r.status))
+                        .map((r, idx) => ({
+                          key: `productLink-rule-${idx}`,
+                          mallData: linkData,
+                          rule: r.rule,
+                          statusLabel: contentStatusConfig[r.status].label,
+                          statusColor: contentStatusConfig[r.status].color,
+                          itemStatus: r.status,
+                          reason: r.reason,
+                          suggestion: r.suggestion,
+                        }));
+                      if (linkTableData.length === 0) return null;
+                      return (
+                        <div key={field.key} style={{ marginBottom: 24 }}>
+                          <h4 style={{ marginBottom: 8 }}>{field.name}</h4>
+                          <Table
+                            columns={[
+                              { title: '当前数据', dataIndex: 'mallData', width: 200 },
+                              { title: '复核规则', dataIndex: 'rule', width: 120 },
+                              { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
+                              { title: '原因', dataIndex: 'reason', width: 250 },
+                              { title: 'AI建议修改', dataIndex: 'suggestion', width: 250 },
+                            ]}
+                            dataSource={linkTableData}
+                            pagination={false}
+                            size="small"
+                          />
+                        </div>
+                      );
+                    }
+                    const overallStatus: ContentStatus = currentProduct.contentStatus?.[field.key as keyof typeof currentProduct.contentStatus] || 'unknown';
+                    const subFields = productSubFields[field.key] || [];
+                    const override = productFailureOverride[field.name];
+                    const riskItem = overallStatus === 'abnormal'
+                      ? Object.values(currentProduct.risks).flat().find((risk) => risk.fieldName.includes(field.name))
+                      : null;
+                    const failureReason = override?.reason || riskItem?.description || '当前字段复核失败，请检查商城内容。';
+                    const aiSuggestion = override?.suggestion || riskItem?.suggestion || '建议检查并修正相关内容。';
+                    const config = contentStatusConfig[overallStatus];
+                    const tableData = subFields.map((sf, idx) => ({
+                      key: `${field.key}-${idx}`,
+                      fieldName: sf.fieldName,
+                      mallData: sf.mallData,
+                      statusLabel: config.label,
+                      statusColor: config.color,
+                      itemStatus: overallStatus,
+                      reason: overallStatus === 'abnormal' ? failureReason : '-',
+                      suggestion: overallStatus === 'abnormal' ? aiSuggestion : '-',
+                    })).filter((row) => productDetailStatusFilter.includes(row.itemStatus));
+                    if (tableData.length === 0) return null;
+                    return (
+                      <div key={field.key} style={{ marginBottom: 24 }}>
+                        <h4 style={{ marginBottom: 8 }}>{field.name}</h4>
+                        <Table
+                          columns={[
+                            { title: '字段名', dataIndex: 'fieldName', width: 120 },
+                            { title: '当前数据', dataIndex: 'mallData', width: 200, render: (text: any, record: any) => record.key === `${field.key}-0` && field.key === 'productMainImage' && text !== '-' ? <img src={text} alt="商品主图" style={{ width: 80, height: 80, objectFit: 'contain' }} /> : text },
+                            { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
+                            { title: '原因', dataIndex: 'reason', width: 250 },
+                            { title: 'AI建议修改方式', dataIndex: 'suggestion', width: 250 },
+                          ]}
+                          dataSource={tableData}
+                          pagination={false}
+                          size="small"
+                        />
+                      </div>
+                    );
+                  })}
                 </>
               ),
             },
             {
               key: 'product-detail-page',
               label: '商品详情页',
-              children: renderProductDetailTables(currentProduct.contentStatus?.productDetail === 'abnormal' ? '商品详情' : undefined),
+              children: (
+                <>
+                  <div style={{ marginBottom: 16 }}>
+                    <span style={{ marginRight: 8 }}>复核状态：</span>
+                    <Select
+                      mode="multiple"
+                      value={productDetailStatusFilter}
+                      onChange={(value: ContentStatus[]) => setProductDetailStatusFilter(value)}
+                      options={[
+                        { label: '复核通过', value: 'normal' },
+                        { label: '复核失败', value: 'abnormal' },
+                        { label: '未复核', value: 'unknown' },
+                        { label: '无需复核', value: 'empty' },
+                      ]}
+                      style={{ width: 400 }}
+                      placeholder="选择复核状态"
+                      allowClear
+                    />
+                  </div>
+                  {productDetailSubFieldNames.map((subFieldName) => {
+                    if (subFieldName === '价格') {
+                      const priceTableData = productPriceReviewRules
+                        .filter((r) => productDetailStatusFilter.includes(r.status))
+                        .map((r, idx) => ({
+                          key: `price-rule-${idx}`,
+                          mallData: productPriceData,
+                          rule: r.rule,
+                          statusLabel: contentStatusConfig[r.status].label,
+                          statusColor: contentStatusConfig[r.status].color,
+                          itemStatus: r.status,
+                          reason: r.reason,
+                          suggestion: r.suggestion,
+                        }));
+                      if (priceTableData.length === 0) return null;
+                      return (
+                        <div key={subFieldName} style={{ marginBottom: 24 }}>
+                          <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
+                          <Table
+                            columns={[
+                              { title: '当前数据', dataIndex: 'mallData', width: 200 },
+                              { title: '复核规则', dataIndex: 'rule', width: 120 },
+                              { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
+                              { title: '原因', dataIndex: 'reason', width: 250 },
+                              { title: 'AI建议修改', dataIndex: 'suggestion', width: 250 },
+                            ]}
+                            dataSource={priceTableData}
+                            pagination={false}
+                            size="small"
+                          />
+                        </div>
+                      );
+                    }
+                    if (subFieldName === '客户评价') {
+                      const reviewTableData = productReviewReviewRules
+                        .filter((r) => productDetailStatusFilter.includes(r.status))
+                        .map((r, idx) => ({
+                          key: `review-rule-${idx}`,
+                          rule: r.rule,
+                          statusLabel: contentStatusConfig[r.status].label,
+                          statusColor: contentStatusConfig[r.status].color,
+                          itemStatus: r.status,
+                          reason: r.reason,
+                          suggestion: r.suggestion,
+                        }));
+                      if (reviewTableData.length === 0) return null;
+                      return (
+                        <div key={subFieldName} style={{ marginBottom: 24 }}>
+                          <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
+                          <Table
+                            columns={[
+                              { title: '复核规则', dataIndex: 'rule', width: 120 },
+                              { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
+                              { title: '原因', dataIndex: 'reason', width: 300 },
+                              { title: 'AI建议修改', dataIndex: 'suggestion', width: 300 },
+                            ]}
+                            dataSource={reviewTableData}
+                            pagination={false}
+                            size="small"
+                          />
+                        </div>
+                      );
+                    }
+                    if (subFieldName === '产品详情') {
+                      const detailTableData = productDetailReviewRules
+                        .filter((r) => productDetailStatusFilter.includes(r.status))
+                        .map((r, idx) => ({
+                          key: `detail-rule-${idx}`,
+                          rule: r.rule,
+                          statusLabel: contentStatusConfig[r.status].label,
+                          statusColor: contentStatusConfig[r.status].color,
+                          itemStatus: r.status,
+                          reason: r.reason,
+                          suggestion: r.suggestion,
+                        }));
+                      if (detailTableData.length === 0) return null;
+                      return (
+                        <div key={subFieldName} style={{ marginBottom: 24 }}>
+                          <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
+                          <Table
+                            columns={[
+                              { title: '复核规则', dataIndex: 'rule', width: 120 },
+                              { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
+                              { title: '原因', dataIndex: 'reason', width: 300 },
+                              { title: 'AI建议修改', dataIndex: 'suggestion', width: 300 },
+                            ]}
+                            dataSource={detailTableData}
+                            pagination={false}
+                            size="small"
+                          />
+                        </div>
+                      );
+                    }
+                    if (subFieldName === '参数细节') {
+                      const paramsTableData = productParamsReviewRules
+                        .filter((r) => productDetailStatusFilter.includes(r.status))
+                        .map((r, idx) => ({
+                          key: `params-rule-${idx}`,
+                          rule: r.rule,
+                          statusLabel: contentStatusConfig[r.status].label,
+                          statusColor: contentStatusConfig[r.status].color,
+                          itemStatus: r.status,
+                          reason: r.reason,
+                          suggestion: r.suggestion,
+                        }));
+                      if (paramsTableData.length === 0) return null;
+                      return (
+                        <div key={subFieldName} style={{ marginBottom: 24 }}>
+                          <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
+                          <Table
+                            columns={[
+                              { title: '复核规则', dataIndex: 'rule', width: 120 },
+                              { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
+                              { title: '原因', dataIndex: 'reason', width: 300 },
+                              { title: 'AI建议修改', dataIndex: 'suggestion', width: 300 },
+                            ]}
+                            dataSource={paramsTableData}
+                            pagination={false}
+                            size="small"
+                          />
+                        </div>
+                      );
+                    }
+                    if (subFieldName === '常见问题解答') {
+                      const faqTableData = productFaqReviewRules
+                        .filter((r) => productDetailStatusFilter.includes(r.status))
+                        .map((r, idx) => ({
+                          key: `faq-rule-${idx}`,
+                          rule: r.rule,
+                          statusLabel: contentStatusConfig[r.status].label,
+                          statusColor: contentStatusConfig[r.status].color,
+                          itemStatus: r.status,
+                          reason: r.reason,
+                          suggestion: r.suggestion,
+                        }));
+                      if (faqTableData.length === 0) return null;
+                      return (
+                        <div key={subFieldName} style={{ marginBottom: 24 }}>
+                          <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
+                          <Table
+                            columns={[
+                              { title: '复核规则', dataIndex: 'rule', width: 120 },
+                              { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
+                              { title: '原因', dataIndex: 'reason', width: 300 },
+                              { title: 'AI建议修改', dataIndex: 'suggestion', width: 300 },
+                            ]}
+                            dataSource={faqTableData}
+                            pagination={false}
+                            size="small"
+                          />
+                        </div>
+                      );
+                    }
+                    if (subFieldName === '手册') {
+                      const manualTableData = productManualReviewRules
+                        .filter((r) => productDetailStatusFilter.includes(r.status))
+                        .map((r, idx) => ({
+                          key: `manual-rule-${idx}`,
+                          rule: r.rule,
+                          statusLabel: contentStatusConfig[r.status].label,
+                          statusColor: contentStatusConfig[r.status].color,
+                          itemStatus: r.status,
+                          reason: r.reason,
+                          suggestion: r.suggestion,
+                        }));
+                      if (manualTableData.length === 0) return null;
+                      return (
+                        <div key={subFieldName} style={{ marginBottom: 24 }}>
+                          <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
+                          <Table
+                            columns={[
+                              { title: '复核规则', dataIndex: 'rule', width: 120 },
+                              { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
+                              { title: '原因', dataIndex: 'reason', width: 300 },
+                              { title: 'AI建议修改', dataIndex: 'suggestion', width: 300 },
+                            ]}
+                            dataSource={manualTableData}
+                            pagination={false}
+                            size="small"
+                          />
+                        </div>
+                      );
+                    }
+                    if (subFieldName === '邮箱地址') {
+                      const emailTableData = productEmailReviewRules
+                        .filter((r) => productDetailStatusFilter.includes(r.status))
+                        .map((r, idx) => ({
+                          key: `email-rule-${idx}`,
+                          rule: r.rule,
+                          statusLabel: contentStatusConfig[r.status].label,
+                          statusColor: contentStatusConfig[r.status].color,
+                          itemStatus: r.status,
+                          reason: r.reason,
+                          suggestion: r.suggestion,
+                        }));
+                      if (emailTableData.length === 0) return null;
+                      return (
+                        <div key={subFieldName} style={{ marginBottom: 24 }}>
+                          <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
+                          <Table
+                            columns={[
+                              { title: '复核规则', dataIndex: 'rule', width: 120 },
+                              { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
+                              { title: '原因', dataIndex: 'reason', width: 300 },
+                              { title: 'AI建议修改', dataIndex: 'suggestion', width: 300 },
+                            ]}
+                            dataSource={emailTableData}
+                            pagination={false}
+                            size="small"
+                          />
+                        </div>
+                      );
+                    }
+                    if (subFieldName === '博客') {
+                      const blogTableData = productBlogReviewRules
+                        .filter((r) => productDetailStatusFilter.includes(r.status))
+                        .map((r, idx) => ({
+                          key: `blog-rule-${idx}`,
+                          rule: r.rule,
+                          statusLabel: contentStatusConfig[r.status].label,
+                          statusColor: contentStatusConfig[r.status].color,
+                          itemStatus: r.status,
+                          reason: r.reason,
+                          suggestion: r.suggestion,
+                        }));
+                      if (blogTableData.length === 0) return null;
+                      return (
+                        <div key={subFieldName} style={{ marginBottom: 24 }}>
+                          <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
+                          <Table
+                            columns={[
+                              { title: '复核规则', dataIndex: 'rule', width: 120 },
+                              { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
+                              { title: '原因', dataIndex: 'reason', width: 300 },
+                              { title: 'AI建议修改', dataIndex: 'suggestion', width: 300 },
+                            ]}
+                            dataSource={blogTableData}
+                            pagination={false}
+                            size="small"
+                          />
+                        </div>
+                      );
+                    }
+                    const subData = productDetailSubFieldData[subFieldName] || [];
+                    const tableData = subData
+                      .map((sf, idx) => ({
+                        key: `${subFieldName}-${idx}`,
+                        fieldName: sf.fieldName,
+                        mallData: sf.mallData,
+                        statusLabel: contentStatusConfig[sf.status].label,
+                        statusColor: contentStatusConfig[sf.status].color,
+                        itemStatus: sf.status,
+                        reason: sf.reason,
+                        suggestion: sf.suggestion,
+                      }))
+                      .filter((row) => productDetailStatusFilter.includes(row.itemStatus));
+                    if (tableData.length === 0) return null;
+                    return (
+                      <div key={subFieldName} style={{ marginBottom: 24 }}>
+                        <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
+                        <Table
+                          columns={[
+                            { title: '字段名', dataIndex: 'fieldName', width: 120 },
+                            { title: '当前数据', dataIndex: 'mallData', width: 200 },
+                            { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
+                            { title: '原因', dataIndex: 'reason', width: 250 },
+                            { title: 'AI建议修改', dataIndex: 'suggestion', width: 250 },
+                          ]}
+                          dataSource={tableData}
+                          pagination={false}
+                          size="small"
+                        />
+                      </div>
+                    );
+                  })}
+                </>
+              ),
             },
             {
               key: 'product-sku-detail-page',
               label: '商品SKU详情页',
-              children: renderProductDetailTables(currentProduct.contentStatus?.productSkuDetail === 'abnormal' ? '商品SKU详情' : undefined),
+              children: renderProductDetailPageContent(),
             },
           ]}
         />
@@ -1614,81 +2566,142 @@ export default function AuditDataPage() {
           icon={<ArrowLeftOutlined />}
           onClick={() => setCurrentPage(null)}
         />
-        <Typography.Text strong>复核页面1</Typography.Text>
+        <Typography.Text strong>页面视觉复核详情</Typography.Text>
       </Space>
     );
 
     const renderPageDetailTables = () => (
       <>
-        <div style={{ marginBottom: 16 }}>
-          <span style={{ marginRight: 8 }}>复核状态：</span>
-          <Select
-            mode="multiple"
-            value={pageDetailStatusFilter}
-            onChange={(value: ContentStatus[]) => setPageDetailStatusFilter(value)}
-            options={[
-              { label: '复核通过', value: 'normal' },
-              { label: '复核失败', value: 'abnormal' },
-              { label: '未复核', value: 'unknown' },
-              { label: '无需复核', value: 'empty' },
-            ]}
-            style={{ width: 400 }}
-            placeholder="选择复核状态"
-            allowClear
-          />
-        </div>
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
-          {pageVisualDetailFields.map((field) => {
-            let overallStatus: ContentStatus = currentPage.pageVisualStatus?.[field.key as keyof typeof currentPage.pageVisualStatus] || 'unknown';
-            const subFields = pageVisualSubFields[field.name] || [];
-            const failureInfo = overallStatus === 'abnormal' ? pageVisualFailureInfo[field.name] : null;
-
-            const tableData = subFields
-              .map((subField, index) => {
-                let itemStatus: ContentStatus = subField.defaultStatus;
-                if (subField.overrideStatus) {
-                  itemStatus = subField.overrideStatus;
-                } else if (overallStatus === 'abnormal' && index === 0) {
-                  itemStatus = 'abnormal';
-                } else if (overallStatus === 'unknown') {
-                  itemStatus = 'unknown';
-                } else if (overallStatus === 'empty') {
-                  itemStatus = 'empty';
-                }
-                const config = contentStatusConfig[itemStatus];
+          {pageModuleFieldNames.map((moduleName) => {
+            if (['轮播图', '轮播图+两图片', '图文展示', '品质保证', '品类页banner', '预约有礼', '视频直播'].includes(moduleName)) {
+              const carouselData = carouselReviewRules.map((r, idx) => {
+                const config = contentStatusConfig[r.status];
                 return {
-                  key: `${field.key}-${index}`,
-                  moduleName: subField.moduleName,
-                  fieldName: subField.fieldName,
-                  mallData: subField.mallData,
-                  isImage: subField.isImage,
+                  key: `carousel-${idx}`,
+                  rule: r.rule,
                   statusLabel: config.label,
                   statusColor: config.color,
-                  itemStatus,
-                  reason: subField.reason || (itemStatus === 'abnormal' ? (failureInfo?.reason || '-') : '-'),
-                  suggestion: itemStatus === 'abnormal' ? (subField.suggestion || failureInfo?.suggestion || '-') : '-',
+                  itemStatus: r.status,
+                  reason: r.reason,
+                  suggestion: r.suggestion,
                 };
-              })
-              .filter((row) => pageDetailStatusFilter.includes(row.itemStatus));
-
+              });
+              return (
+                <div key={moduleName}>
+                  <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
+                    {moduleName}
+                  </Typography.Text>
+                  <Table
+                    columns={[
+                      { title: '复核规则', dataIndex: 'rule', width: 120 },
+                      { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: string, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
+                      { title: '原因', dataIndex: 'reason', width: 300 },
+                      { title: 'AI建议修改', dataIndex: 'suggestion', width: 300 },
+                    ]}
+                    dataSource={carouselData}
+                    pagination={false}
+                    size="small"
+                  />
+                </div>
+              );
+            }
+            if (['一行四商品', '商品多组件模块', '网红背书', '博客', '商品列表'].includes(moduleName)) {
+              const moduleReviewData = moduleReviewRules.map((r, idx) => {
+                const config = contentStatusConfig[r.status];
+                return {
+                  key: `module-review-${idx}`,
+                  rule: r.rule,
+                  statusLabel: config.label,
+                  statusColor: config.color,
+                  itemStatus: r.status,
+                  reason: r.reason,
+                  suggestion: r.suggestion,
+                };
+              });
+              return (
+                <div key={moduleName}>
+                  <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
+                    {moduleName}
+                  </Typography.Text>
+                  <Table
+                    columns={[
+                      { title: '复核规则', dataIndex: 'rule', width: 120 },
+                      { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: string, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
+                      { title: '原因', dataIndex: 'reason', width: 300 },
+                      { title: 'AI建议修改', dataIndex: 'suggestion', width: 300 },
+                    ]}
+                    dataSource={moduleReviewData}
+                    pagination={false}
+                    size="small"
+                  />
+                </div>
+              );
+            }
+            if (['类别', '富文本'].includes(moduleName)) {
+              const categoryData = categoryReviewRules.map((r, idx) => {
+                const config = contentStatusConfig[r.status];
+                return {
+                  key: `category-${idx}`,
+                  rule: r.rule,
+                  statusLabel: config.label,
+                  statusColor: config.color,
+                  itemStatus: r.status,
+                  reason: r.reason,
+                  suggestion: r.suggestion,
+                };
+              });
+              return (
+                <div key={moduleName}>
+                  <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
+                    {moduleName}
+                  </Typography.Text>
+                  <Table
+                    columns={[
+                      { title: '复核规则', dataIndex: 'rule', width: 120 },
+                      { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: string, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
+                      { title: '原因', dataIndex: 'reason', width: 300 },
+                      { title: 'AI建议修改', dataIndex: 'suggestion', width: 300 },
+                    ]}
+                    dataSource={categoryData}
+                    pagination={false}
+                    size="small"
+                  />
+                </div>
+              );
+            }
+            const moduleData = pageModuleFieldData[moduleName] || [];
+            const tableData = moduleData
+              .map((row, idx) => {
+                const config = contentStatusConfig[row.status];
+                return {
+                  key: `${moduleName}-${idx}`,
+                  fieldName: row.fieldName,
+                  mallData: row.mallData,
+                  isImage: row.isImage,
+                  statusLabel: config.label,
+                  statusColor: config.color,
+                  itemStatus: row.status,
+                  reason: row.reason,
+                  suggestion: row.suggestion,
+                };
+              });
             if (tableData.length === 0) return null;
-
             return (
-              <div key={field.key}>
+              <div key={moduleName}>
                 <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
-                  {field.name}
+                  {moduleName}
                 </Typography.Text>
                 <Table
                   columns={[
-                    ...((field.name === '语言书写错误检查' || field.name === '文案合规检查' || field.name === '本地化合规' || field.name === '信息正确性审核' || field.name === '图片完整性' || field.name === '图片质量' || field.name === '图片尺寸/比例' || field.name === '商品/主体展示' || field.name === '图片内容合规' || field.name === '有效性检查') ? [{ title: '模块名' as const, dataIndex: 'moduleName' as const, width: 120 }] : []),
-                    { title: (field.name === '模块完整性' || field.name === '排版/布局异常') ? '模块名' : '字段名', dataIndex: 'fieldName', width: 120 },
-                    ...(field.name === '模块完整性' || field.name === '排版/布局异常' ? [] : [{ title: '当前数据' as const, dataIndex: 'mallData' as const, width: 200, render: (text: string, record: any) => record.isImage ? <img src={text} alt="图片" style={{ width: 80, height: 80, objectFit: 'contain' }} /> : text }]),
+                    { title: '字段名', dataIndex: 'fieldName', width: 120 },
+                    { title: '当前数据', dataIndex: 'mallData', width: 200, render: (text: string, record: any) => record.isImage ? <img src={text} alt="图片" style={{ width: 80, height: 80, objectFit: 'contain' }} /> : text },
                     { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: string, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
                     { title: '原因', dataIndex: 'reason', width: 250 },
                     { title: 'AI建议修改', dataIndex: 'suggestion', width: 250 },
                   ]}
                   dataSource={tableData}
-                  pagination={{ pageSize: 5, showSizeChanger: false, showTotal: (total: number) => `共 ${total} 条` }}
+                  pagination={false}
                   size="small"
                 />
               </div>
@@ -1902,19 +2915,28 @@ export default function AuditDataPage() {
           options={pageStoreOptions.map((value) => ({ label: value, value }))}
           style={{ width: 160 }}
         />
-        <Select
-          allowClear
-          value={pageYearMonth}
-          placeholder="年月"
-          onChange={setPageYearMonth}
-          options={pageYearMonthOptions.map((value) => ({ label: value, value }))}
-          style={{ width: 140 }}
+        <DatePicker
+          showTime
+          format="YYYY-MM-DD HH:mm"
+          value={pageStartTime}
+          placeholder="开始时间"
+          onChange={setPageStartTime}
+          style={{ width: 180 }}
+        />
+        <DatePicker
+          showTime
+          format="YYYY-MM-DD HH:mm"
+          value={pageEndTime}
+          placeholder="结束时间"
+          onChange={setPageEndTime}
+          style={{ width: 180 }}
         />
         <Button
           onClick={() => {
             setPageKeyword('');
             setPageStore(undefined);
-            setPageYearMonth(undefined);
+            setPageStartTime(null);
+            setPageEndTime(null);
           }}
         >
           重置
@@ -1934,7 +2956,7 @@ export default function AuditDataPage() {
         }}
         columns={pageVisualColumns}
         dataSource={filteredPageAuditObjects}
-        scroll={{ x: 2800 }}
+        scroll={{ x: 3210 }}
         pagination={{ pageSize: 6 }}
       />
     </Card>
@@ -1950,7 +2972,7 @@ export default function AuditDataPage() {
           {
             key: 'product-visual-audit',
             label: '商品视觉复核',
-            children: renderListCard(productVisualColumns, 4050),
+            children: renderListCard(productVisualColumns, 5320),
           },
           {
             key: 'page-visual-audit',
