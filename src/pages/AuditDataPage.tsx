@@ -1050,6 +1050,7 @@ export default function AuditDataPage() {
         </Space>
       ),
     };
+    const groupSeparatorStyle = { borderLeft: '2px solid #d9d9d9' };
     const productBasicInfoColumns: ColumnsType<AuditObject> = [
       {
         title: '商品标题',
@@ -1057,6 +1058,8 @@ export default function AuditDataPage() {
         width: 100,
         align: 'center' as const,
         render: (_, record) => renderProductContentStatus(record, 'productTitle', '商品标题'),
+        onHeaderCell: () => ({ style: groupSeparatorStyle }),
+        onCell: () => ({ style: groupSeparatorStyle }),
       },
       {
         title: '商品主图',
@@ -1080,16 +1083,21 @@ export default function AuditDataPage() {
         render: (_, record) => renderProductContentStatus(record, 'productLink', '商品链接'),
       },
     ];
-    const productDetailSubColumns: ColumnsType<AuditObject> = [
-      '价格', '客户评价', '产品详情', '参数细节',
-      '常见问题解答', '手册', '博客', '邮箱地址',
-    ].map((subName) => ({
-      title: subName,
-      dataIndex: 'contentStatus',
-      width: 90,
-      align: 'center' as const,
-      render: () => renderContentStatus('normal'),
-    }));
+    const buildProductDetailSubColumns = (withSeparator: boolean): ColumnsType<AuditObject> =>
+      ['价格', '客户评价', '产品详情', '参数细节',
+       '常见问题解答', '手册', '博客', '邮箱地址'].map((subName, idx) => ({
+        title: subName,
+        dataIndex: 'contentStatus',
+        width: 90,
+        align: 'center' as const,
+        render: () => renderContentStatus('normal'),
+        ...(withSeparator && idx === 0
+          ? {
+              onHeaderCell: () => ({ style: groupSeparatorStyle }),
+              onCell: () => ({ style: groupSeparatorStyle }),
+            }
+          : {}),
+      }));
 
     return [
       productActionColumn,
@@ -1103,13 +1111,17 @@ export default function AuditDataPage() {
       },
       {
         title: '商品详情',
-        children: productDetailSubColumns,
+        children: buildProductDetailSubColumns(true),
       },
       {
         title: '商品SKU详情',
-        children: productDetailSubColumns,
+        children: buildProductDetailSubColumns(true),
       },
-      latestAuditTimeColumn,
+      {
+        ...latestAuditTimeColumn,
+        onHeaderCell: () => ({ style: groupSeparatorStyle }),
+        onCell: () => ({ style: groupSeparatorStyle }),
+      },
     ];
   }, [columns]);
 
