@@ -596,6 +596,21 @@ const productBlogReviewRules: Array<{ rule: string; status: ContentStatus; reaso
   { rule: '图片内容合规', status: 'normal', reason: '-', suggestion: '-' },
 ];
 
+const subFieldReviewRulesMap: Record<string, Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }>> = {
+  '商品标题': productTitleReviewRules,
+  '商品主图': productMainImageReviewRules,
+  '商品副标题': productSubtitleReviewRules,
+  '商品链接': productLinkReviewRules,
+  '价格': productPriceReviewRules,
+  '客户评价': productReviewReviewRules,
+  '产品详情': productDetailReviewRules,
+  '参数细节': productParamsReviewRules,
+  '常见问题解答': productFaqReviewRules,
+  '手册': productManualReviewRules,
+  '博客': productBlogReviewRules,
+  '邮箱地址': productEmailReviewRules,
+};
+
 const productDetailSubFieldData: Record<string, Array<{ fieldName: string; mallData: string; status: ContentStatus; reason: string; suggestion: string }>> = {
   '价格': [
     { fieldName: '商品价格', mallData: '$199.99', status: 'normal', reason: '-', suggestion: '-' },
@@ -1051,13 +1066,17 @@ export default function AuditDataPage() {
       ),
     };
     const groupSeparatorStyle = { borderLeft: '2px solid #d9d9d9' };
+    const hasFieldFailure = (fieldName: string): boolean => {
+      const rules = subFieldReviewRulesMap[fieldName];
+      return rules ? rules.some((r) => r.status === 'abnormal') : false;
+    };
     const productBasicInfoColumns: ColumnsType<AuditObject> = [
       {
         title: '商品标题',
         dataIndex: 'contentStatus',
         width: 100,
         align: 'center' as const,
-        render: (_, record) => renderProductContentStatus(record, 'productTitle', '商品标题'),
+        render: (_, record) => hasFieldFailure('商品标题') ? renderContentStatus('abnormal') : renderProductContentStatus(record, 'productTitle', '商品标题'),
         onHeaderCell: () => ({ style: groupSeparatorStyle }),
         onCell: () => ({ style: groupSeparatorStyle }),
       },
@@ -1066,21 +1085,21 @@ export default function AuditDataPage() {
         dataIndex: 'contentStatus',
         width: 100,
         align: 'center' as const,
-        render: (_, record) => renderProductContentStatus(record, 'productMainImage', '商品主图'),
+        render: (_, record) => hasFieldFailure('商品主图') ? renderContentStatus('abnormal') : renderProductContentStatus(record, 'productMainImage', '商品主图'),
       },
       {
         title: '商品副标题',
         dataIndex: 'contentStatus',
         width: 100,
         align: 'center' as const,
-        render: (_, record) => renderProductContentStatus(record, 'productSubtitle', '商品副标题'),
+        render: (_, record) => hasFieldFailure('商品副标题') ? renderContentStatus('abnormal') : renderProductContentStatus(record, 'productSubtitle', '商品副标题'),
       },
       {
         title: '商品链接',
         dataIndex: 'contentStatus',
         width: 100,
         align: 'center' as const,
-        render: (_, record) => renderProductContentStatus(record, 'productLink', '商品链接'),
+        render: (_, record) => hasFieldFailure('商品链接') ? renderContentStatus('abnormal') : renderProductContentStatus(record, 'productLink', '商品链接'),
       },
     ];
     const buildProductDetailSubColumns = (withSeparator: boolean): ColumnsType<AuditObject> =>
@@ -1090,7 +1109,7 @@ export default function AuditDataPage() {
         dataIndex: 'contentStatus',
         width: 90,
         align: 'center' as const,
-        render: () => renderContentStatus('normal'),
+        render: () => renderContentStatus(hasFieldFailure(subName) ? 'abnormal' : 'normal'),
         ...(withSeparator && idx === 0
           ? {
               onHeaderCell: () => ({ style: groupSeparatorStyle }),
