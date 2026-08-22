@@ -334,6 +334,21 @@ body {
   line-height: 1.6;
 }
 
+.compact-empty-table .ant-table-placeholder,
+.product-detail-tabs .ant-table-placeholder {
+  padding: 2px 8px !important;
+}
+
+.compact-empty-table .ant-empty-image,
+.product-detail-tabs .ant-empty-image {
+  display: none;
+}
+
+.compact-empty-table .ant-empty-description,
+.product-detail-tabs .ant-empty-description {
+  font-size: 12px;
+}
+
 .detail-card-label {
   flex: 0 0 auto;
   color: #262626;

@@ -826,7 +826,7 @@ export default function AuditDataPage() {
   const [activeTab, setActiveTab] = useState('product-visual-audit');
   const [logViewTab, setLogViewTab] = useState<'product' | 'page'>('product');
   const [productDetailStatusFilter, setProductDetailStatusFilter] = useState<ContentStatus[]>(['abnormal', 'unknown', 'empty']);
-  const [pageDetailStatusFilter, setPageDetailStatusFilter] = useState<ContentStatus[]>(['abnormal', 'unknown', 'empty']);
+  const [pageDetailStatusFilter, setPageDetailStatusFilter] = useState<ContentStatus[]>(['normal', 'abnormal', 'unknown', 'empty']);
 
   const productAuditObjects = useMemo(() => auditObjects.filter((item) => item.type === '商品'), []);
   const pageAuditObjects = useMemo(() => auditObjects.filter((item) => item.type === '页面'), []);
@@ -1917,8 +1917,7 @@ export default function AuditDataPage() {
               })
               .filter((row) => productDetailStatusFilter.includes(row.itemStatus));
 
-            if (tableData.length === 0) return null;
-
+  
             return (
               <div key={field.key}>
                 <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
@@ -1976,7 +1975,6 @@ export default function AuditDataPage() {
                 reason: r.reason,
                 suggestion: r.suggestion,
               }));
-            if (priceTableData.length === 0) return null;
             return (
               <div key={subFieldName} style={{ marginBottom: 24 }}>
                 <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
@@ -2007,7 +2005,6 @@ export default function AuditDataPage() {
                 reason: r.reason,
                 suggestion: r.suggestion,
               }));
-            if (reviewTableData.length === 0) return null;
             return (
               <div key={subFieldName} style={{ marginBottom: 24 }}>
                 <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
@@ -2037,7 +2034,6 @@ export default function AuditDataPage() {
                 reason: r.reason,
                 suggestion: r.suggestion,
               }));
-            if (detailTableData.length === 0) return null;
             return (
               <div key={subFieldName} style={{ marginBottom: 24 }}>
                 <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
@@ -2067,7 +2063,6 @@ export default function AuditDataPage() {
                 reason: r.reason,
                 suggestion: r.suggestion,
               }));
-            if (paramsTableData.length === 0) return null;
             return (
               <div key={subFieldName} style={{ marginBottom: 24 }}>
                 <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
@@ -2097,7 +2092,6 @@ export default function AuditDataPage() {
                 reason: r.reason,
                 suggestion: r.suggestion,
               }));
-            if (faqTableData.length === 0) return null;
             return (
               <div key={subFieldName} style={{ marginBottom: 24 }}>
                 <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
@@ -2127,7 +2121,6 @@ export default function AuditDataPage() {
                 reason: r.reason,
                 suggestion: r.suggestion,
               }));
-            if (manualTableData.length === 0) return null;
             return (
               <div key={subFieldName} style={{ marginBottom: 24 }}>
                 <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
@@ -2157,7 +2150,6 @@ export default function AuditDataPage() {
                 reason: r.reason,
                 suggestion: r.suggestion,
               }));
-            if (blogTableData.length === 0) return null;
             return (
               <div key={subFieldName} style={{ marginBottom: 24 }}>
                 <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
@@ -2188,7 +2180,6 @@ export default function AuditDataPage() {
               suggestion: sf.suggestion,
             }))
             .filter((row) => productDetailStatusFilter.includes(row.itemStatus));
-          if (tableData.length === 0) return null;
           return (
             <div key={subFieldName} style={{ marginBottom: 24 }}>
               <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
@@ -2211,7 +2202,7 @@ export default function AuditDataPage() {
     );
 
     return (
-      <Card title={cardTitle}>
+      <Card title={cardTitle} className="product-detail-tabs">
         <Tabs
           defaultActiveKey="product-info"
           items={[
@@ -2252,8 +2243,7 @@ export default function AuditDataPage() {
                           reason: r.reason,
                           suggestion: r.suggestion,
                         }));
-                      if (titleTableData.length === 0) return null;
-                      return (
+                                return (
                         <div key={field.key} style={{ marginBottom: 24 }}>
                           <h4 style={{ marginBottom: 8 }}>{field.name}</h4>
                           <Table
@@ -2285,8 +2275,7 @@ export default function AuditDataPage() {
                           reason: r.reason,
                           suggestion: r.suggestion,
                         }));
-                      if (imageTableData.length === 0) return null;
-                      return (
+                                return (
                         <div key={field.key} style={{ marginBottom: 24 }}>
                           <h4 style={{ marginBottom: 8 }}>{field.name}</h4>
                           <Table
@@ -2318,8 +2307,7 @@ export default function AuditDataPage() {
                           reason: r.reason,
                           suggestion: r.suggestion,
                         }));
-                      if (subtitleTableData.length === 0) return null;
-                      return (
+                                return (
                         <div key={field.key} style={{ marginBottom: 24 }}>
                           <h4 style={{ marginBottom: 8 }}>{field.name}</h4>
                           <Table
@@ -2351,7 +2339,6 @@ export default function AuditDataPage() {
                           reason: r.reason,
                           suggestion: r.suggestion,
                         }));
-                      if (linkTableData.length === 0) return null;
                       return (
                         <div key={field.key} style={{ marginBottom: 24 }}>
                           <h4 style={{ marginBottom: 8 }}>{field.name}</h4>
@@ -2389,7 +2376,6 @@ export default function AuditDataPage() {
                       reason: overallStatus === 'abnormal' ? failureReason : '-',
                       suggestion: overallStatus === 'abnormal' ? aiSuggestion : '-',
                     })).filter((row) => productDetailStatusFilter.includes(row.itemStatus));
-                    if (tableData.length === 0) return null;
                     return (
                       <div key={field.key} style={{ marginBottom: 24 }}>
                         <h4 style={{ marginBottom: 8 }}>{field.name}</h4>
@@ -2447,8 +2433,7 @@ export default function AuditDataPage() {
                           reason: r.reason,
                           suggestion: r.suggestion,
                         }));
-                      if (priceTableData.length === 0) return null;
-                      return (
+                                return (
                         <div key={subFieldName} style={{ marginBottom: 24 }}>
                           <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
                           <Table
@@ -2478,8 +2463,7 @@ export default function AuditDataPage() {
                           reason: r.reason,
                           suggestion: r.suggestion,
                         }));
-                      if (reviewTableData.length === 0) return null;
-                      return (
+                                return (
                         <div key={subFieldName} style={{ marginBottom: 24 }}>
                           <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
                           <Table
@@ -2508,8 +2492,7 @@ export default function AuditDataPage() {
                           reason: r.reason,
                           suggestion: r.suggestion,
                         }));
-                      if (detailTableData.length === 0) return null;
-                      return (
+                                return (
                         <div key={subFieldName} style={{ marginBottom: 24 }}>
                           <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
                           <Table
@@ -2538,8 +2521,7 @@ export default function AuditDataPage() {
                           reason: r.reason,
                           suggestion: r.suggestion,
                         }));
-                      if (paramsTableData.length === 0) return null;
-                      return (
+                                return (
                         <div key={subFieldName} style={{ marginBottom: 24 }}>
                           <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
                           <Table
@@ -2568,8 +2550,7 @@ export default function AuditDataPage() {
                           reason: r.reason,
                           suggestion: r.suggestion,
                         }));
-                      if (faqTableData.length === 0) return null;
-                      return (
+                                return (
                         <div key={subFieldName} style={{ marginBottom: 24 }}>
                           <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
                           <Table
@@ -2598,8 +2579,7 @@ export default function AuditDataPage() {
                           reason: r.reason,
                           suggestion: r.suggestion,
                         }));
-                      if (manualTableData.length === 0) return null;
-                      return (
+                                return (
                         <div key={subFieldName} style={{ marginBottom: 24 }}>
                           <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
                           <Table
@@ -2628,8 +2608,7 @@ export default function AuditDataPage() {
                           reason: r.reason,
                           suggestion: r.suggestion,
                         }));
-                      if (blogTableData.length === 0) return null;
-                      return (
+                                return (
                         <div key={subFieldName} style={{ marginBottom: 24 }}>
                           <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
                           <Table
@@ -2659,7 +2638,6 @@ export default function AuditDataPage() {
                         suggestion: sf.suggestion,
                       }))
                       .filter((row) => productDetailStatusFilter.includes(row.itemStatus));
-                    if (tableData.length === 0) return null;
                     return (
                       <div key={subFieldName} style={{ marginBottom: 24 }}>
                         <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
@@ -2758,6 +2736,7 @@ export default function AuditDataPage() {
                     {moduleName}
                   </Typography.Text>
                   <Table
+                    className={carouselData.length === 0 ? 'compact-empty-table' : ''}
                     columns={[
                       { title: '复核规则', dataIndex: 'rule', width: 120 },
                       { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: string, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
@@ -2791,6 +2770,7 @@ export default function AuditDataPage() {
                     {moduleName}
                   </Typography.Text>
                   <Table
+                    className={moduleReviewData.length === 0 ? 'compact-empty-table' : ''}
                     columns={[
                       { title: '复核规则', dataIndex: 'rule', width: 120 },
                       { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: string, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
@@ -2824,6 +2804,7 @@ export default function AuditDataPage() {
                     {moduleName}
                   </Typography.Text>
                   <Table
+                    className={categoryData.length === 0 ? 'compact-empty-table' : ''}
                     columns={[
                       { title: '复核规则', dataIndex: 'rule', width: 120 },
                       { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: string, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
@@ -2855,13 +2836,13 @@ export default function AuditDataPage() {
                 };
               })
               .filter((row) => pageDetailStatusFilter.includes(row.itemStatus));
-            if (tableData.length === 0) return null;
-            return (
+              return (
               <div key={moduleName}>
                 <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
                   {moduleName}
                 </Typography.Text>
                 <Table
+                  className={tableData.length === 0 ? 'compact-empty-table' : ''}
                   columns={[
                     { title: '字段名', dataIndex: 'fieldName', width: 120 },
                     { title: '当前数据', dataIndex: 'mallData', width: 200, render: (text: string, record: any) => record.isImage ? <img src={text} alt="图片" style={{ width: 80, height: 80, objectFit: 'contain' }} /> : text },
