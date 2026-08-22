@@ -639,7 +639,7 @@ const productLinkReviewRules: Array<{ rule: string; status: ContentStatus; reaso
 
 const productDetailSubFieldNames = [
   '价格', '客户评价', '产品详情', '参数细节',
-  '常见问题解答', '手册', '博客', '邮箱地址',
+  '常见问题解答', '手册', '博客',
 ];
 
 const productPriceData = '$239.99\n会员最多可使用2398枚O币，每件物品可扣除11.99美元。\n4次无息60美元付款';
@@ -688,12 +688,6 @@ const productManualReviewRules: Array<{ rule: string; status: ContentStatus; rea
   { rule: '排版/布局异常', status: 'normal', reason: '-', suggestion: '-' },
 ];
 
-const productEmailReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
-  { rule: '语言书写错误检查', status: 'normal', reason: '-', suggestion: '-' },
-  { rule: '文案合规检查', status: 'normal', reason: '-', suggestion: '-' },
-  { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
-];
-
 const productBlogReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
   { rule: '语言书写错误检查', status: 'normal', reason: '-', suggestion: '-' },
   { rule: '文案合规检查', status: 'normal', reason: '-', suggestion: '-' },
@@ -714,7 +708,6 @@ const subFieldReviewRulesMap: Record<string, Array<{ rule: string; status: Conte
   '常见问题解答': productFaqReviewRules,
   '手册': productManualReviewRules,
   '博客': productBlogReviewRules,
-  '邮箱地址': productEmailReviewRules,
 };
 
 const productDetailSubFieldData: Record<string, Array<{ fieldName: string; mallData: string; status: ContentStatus; reason: string; suggestion: string }>> = {
@@ -738,9 +731,6 @@ const productDetailSubFieldData: Record<string, Array<{ fieldName: string; mallD
   ],
   '博客': [
     { fieldName: '博客文章', mallData: 'Tactical Flashlight Buyer Guide', status: 'normal', reason: '-', suggestion: '-' },
-  ],
-  '邮箱地址': [
-    { fieldName: '联系邮箱', mallData: 'support@olight.com', status: 'normal', reason: '-', suggestion: '-' },
   ],
 };
 
@@ -1210,7 +1200,7 @@ export default function AuditDataPage() {
     ];
     const buildProductDetailSubColumns = (withSeparator: boolean): ColumnsType<AuditObject> =>
       ['价格', '客户评价', '产品详情', '参数细节',
-       '常见问题解答', '手册', '博客', '邮箱地址'].map((subName, idx) => ({
+       '常见问题解答', '手册', '博客'].map((subName, idx) => ({
         title: subName,
         dataIndex: 'contentStatus',
         width: 90,
@@ -2155,36 +2145,6 @@ export default function AuditDataPage() {
               </div>
             );
           }
-          if (subFieldName === '邮箱地址') {
-            const emailTableData = productEmailReviewRules
-              .filter((r) => productDetailStatusFilter.includes(r.status))
-              .map((r, idx) => ({
-                key: `email-rule-${idx}`,
-                rule: r.rule,
-                statusLabel: contentStatusConfig[r.status].label,
-                statusColor: contentStatusConfig[r.status].color,
-                itemStatus: r.status,
-                reason: r.reason,
-                suggestion: r.suggestion,
-              }));
-            if (emailTableData.length === 0) return null;
-            return (
-              <div key={subFieldName} style={{ marginBottom: 24 }}>
-                <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
-                <Table
-                  columns={[
-                    { title: '复核规则', dataIndex: 'rule', width: 120 },
-                    { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
-                    { title: '原因', dataIndex: 'reason', width: 300 },
-                    { title: 'AI建议修改', dataIndex: 'suggestion', width: 300 },
-                  ]}
-                  dataSource={emailTableData}
-                  pagination={false}
-                  size="small"
-                />
-              </div>
-            );
-          }
           if (subFieldName === '博客') {
             const blogTableData = productBlogReviewRules
               .filter((r) => productDetailStatusFilter.includes(r.status))
@@ -2650,36 +2610,6 @@ export default function AuditDataPage() {
                               { title: 'AI建议修改', dataIndex: 'suggestion', width: 300 },
                             ]}
                             dataSource={manualTableData}
-                            pagination={false}
-                            size="small"
-                          />
-                        </div>
-                      );
-                    }
-                    if (subFieldName === '邮箱地址') {
-                      const emailTableData = productEmailReviewRules
-                        .filter((r) => productDetailStatusFilter.includes(r.status))
-                        .map((r, idx) => ({
-                          key: `email-rule-${idx}`,
-                          rule: r.rule,
-                          statusLabel: contentStatusConfig[r.status].label,
-                          statusColor: contentStatusConfig[r.status].color,
-                          itemStatus: r.status,
-                          reason: r.reason,
-                          suggestion: r.suggestion,
-                        }));
-                      if (emailTableData.length === 0) return null;
-                      return (
-                        <div key={subFieldName} style={{ marginBottom: 24 }}>
-                          <h4 style={{ marginBottom: 8 }}>{subFieldName}</h4>
-                          <Table
-                            columns={[
-                              { title: '复核规则', dataIndex: 'rule', width: 120 },
-                              { title: '复核状态', dataIndex: 'statusLabel', width: 100, render: (text: any, record: any) => <span style={{ color: record.statusColor }}>{text}</span> },
-                              { title: '原因', dataIndex: 'reason', width: 300 },
-                              { title: 'AI建议修改', dataIndex: 'suggestion', width: 300 },
-                            ]}
-                            dataSource={emailTableData}
                             pagination={false}
                             size="small"
                           />
