@@ -185,7 +185,7 @@ function renderPageVisualContentStatus(record: AuditObject, checkType: string) {
 }
 
 function renderPageModuleStatus(moduleName: string, record: AuditObject) {
-  const applicableModules = pageTypeModuleMap[record.pageType] || [];
+  const applicableModules = pageTypeModuleMap[record.pageType || ''] || [];
   if (!applicableModules.includes(moduleName)) {
     return renderContentStatus('empty');
   }
