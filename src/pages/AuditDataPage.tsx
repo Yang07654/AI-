@@ -92,7 +92,7 @@ function renderProductContentStatus(record: AuditObject, fieldKey: string, field
     const riskItem = Object.values(record.risks).flat().find((risk) => risk.fieldName.includes(fieldName));
     const failureReason = override?.reason || riskItem?.description || '当前字段复核失败，请检查内容。';
     const aiSuggestion = override?.suggestion || riskItem?.suggestion || '建议检查并修正相关内容。';
-    const currentData = productSubFields[fieldKey]?.[0]?.mallData || '-';
+    const currentData = productSubFields[fieldKey]?.[0]?.mallData || '';
 
     return (
       <Tooltip
@@ -105,10 +105,12 @@ function renderProductContentStatus(record: AuditObject, fieldKey: string, field
               <span style={{ fontWeight: 'bold' }}>失败字段/模块：</span>
               {override?.fieldName || fieldName}
             </div>
-            <div style={{ marginBottom: 1 }}>
-              <span style={{ fontWeight: 'bold' }}>当前数据：</span>
-              {currentData}
-            </div>
+            {currentData && (
+              <div style={{ marginBottom: 1 }}>
+                <span style={{ fontWeight: 'bold' }}>当前数据：</span>
+                {currentData}
+              </div>
+            )}
             <div style={{ marginBottom: 1 }}>
               <span style={{ fontWeight: 'bold' }}>失败原因：</span>
               {failureReason}
@@ -180,6 +182,69 @@ function renderPageVisualContentStatus(record: AuditObject, checkType: string) {
   }
 
   return <Tooltip title={config.label}>{config.icon}</Tooltip>;
+}
+
+function renderPageModuleStatus(moduleName: string, record: AuditObject) {
+  const applicableModules = pageTypeModuleMap[record.pageType] || [];
+  if (!applicableModules.includes(moduleName)) {
+    return renderContentStatus('empty');
+  }
+
+  let rules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }>;
+  if (['轮播图', '品类页banner', '一行图片（换行）', '一图片+两商品', '一图片+一商品', '主推四款', '九模块', '网红背书', '游戏入口'].includes(moduleName)) {
+    rules = carouselReviewRules;
+  } else if (['一行四商品', '博客', '新闻资讯', '商品列表'].includes(moduleName)) {
+    rules = moduleReviewRules;
+  } else if (['类别', '富文本', '分类页富文本', '定位条模块'].includes(moduleName)) {
+    rules = categoryReviewRules;
+  } else {
+    return renderContentStatus('normal');
+  }
+
+  const failedRules: Array<{ rule: string; reason: string; suggestion: string }> = [];
+  for (const r of rules) {
+    let status: ContentStatus = record.pageVisualStatus?.[r.rule as keyof typeof record.pageVisualStatus] || r.status;
+    let reason = r.reason;
+    let suggestion = r.suggestion;
+    if (moduleName === '轮播图' && r.rule === '语言书写错误检查') {
+      status = 'abnormal';
+      reason = '"4次无息60美元付款"语序不完整，金额表达不够统一';
+      suggestion = '每件商品可抵扣$11.99.支持4期免息分期付款';
+    }
+    if (status === 'abnormal') {
+      failedRules.push({ rule: r.rule, reason, suggestion });
+    }
+  }
+
+  if (failedRules.length > 0) {
+    return (
+      <Tooltip
+        overlayClassName="failure-tooltip"
+        overlayStyle={{ maxWidth: 240 }}
+        overlayInnerStyle={{ backgroundColor: '#fff', maxHeight: 120, overflowY: 'auto', padding: 6, fontSize: 12 }}
+        title={
+          <div style={{ lineHeight: 1.4, color: '#ff4d4f' }}>
+            {failedRules.map((fr, index) => (
+              <div key={index} style={{ marginBottom: index < failedRules.length - 1 ? 6 : 0 }}>
+                <div style={{ marginBottom: 1 }}>
+                  <span style={{ fontWeight: 'bold' }}>原因：</span>
+                  {fr.reason}
+                </div>
+                <div>
+                  <span style={{ fontWeight: 'bold' }}>AI建议修改：</span>
+                  {fr.suggestion}
+                </div>
+              </div>
+            ))}
+          </div>
+        }
+      >
+        {contentStatusConfig.abnormal.icon}
+      </Tooltip>
+    );
+  }
+
+  return renderContentStatus('normal');
 }
 
 interface ProductContentField {
@@ -300,10 +365,32 @@ const pageVisualSubFields: Record<string, Array<{ moduleName?: string; fieldName
 };
 
 const pageModuleFieldNames = [
-  '轮播图', '轮播图+两图片', '图文展示', '一行四商品',
-  '商品多组件模块', '品质保证', '网红背书', '博客', '品类页banner',
-  '预约有礼', '视频直播', '富文本', '类别', '商品列表',
+  '轮播图', '品类页banner', '一行四商品', '一行图片（换行）', '一图片+两商品', '一图片+一商品', '主推四款', '九模块',
+  '网红背书', '博客', '游戏入口', '定位条模块', '新闻资讯', '富文本', '分类页富文本', '类别', '商品列表',
 ];
+
+const baseModuleNames = [
+  '轮播图', '品类页banner', '一行四商品', '一行图片（换行）', '一图片+两商品', '一图片+一商品', '主推四款', '九模块',
+  '网红背书', '博客', '游戏入口', '定位条模块', '新闻资讯', '富文本',
+];
+
+const codeContainerModuleNames = [
+  '分类页富文本', '类别', '商品列表',
+];
+
+const pageTypeModuleMap: Record<string, string[]> = {
+  '商城首页': ['轮播图', '一行图片（换行）', '一图片+两商品', '一图片+一商品', '一行四商品', '游戏入口', '网红背书', '博客', '富文本'],
+  '专题页': ['轮播图', '定位条模块', '一行四商品', '品类页banner'],
+  '官网首页': ['轮播图', '主推四款', '九模块', '网红背书', '博客', '新闻资讯'],
+  '分类页': ['分类页富文本', '类别', '商品列表'],
+};
+
+const pageTypeOrder: Record<string, number> = {
+  '商城首页': 1,
+  '官网首页': 2,
+  '专题页': 3,
+  '分类页': 4,
+};
 
 const carouselReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
   { rule: '语言书写错误检查', status: 'abnormal', reason: '"Limited-Time Only Never To Be Offered Again"语法和标点不自然；活动时间格式不统一。', suggestion: 'Available for a limited time only—never to be offered again. 活动时间统一为: August 10, 8:00 PM—August 24, 11:59 PM EDT' },
@@ -314,13 +401,13 @@ const carouselReviewRules: Array<{ rule: string; status: ContentStatus; reason: 
   { rule: '图片内容合规', status: 'normal', reason: '-', suggestion: '-' },
   { rule: '图片尺寸/比例', status: 'normal', reason: '-', suggestion: '-' },
   { rule: '有效性检查', status: 'normal', reason: '-', suggestion: '-' },
-  { rule: '链接完整性', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '模块完整性', status: 'normal', reason: '-', suggestion: '-' },
   { rule: '排版/布局异常', status: 'normal', reason: '-', suggestion: '-' },
 ];
 
 const moduleReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
-  { rule: '语言书写错误检查', status: 'abnormal', reason: '"Limited-Time Only Never To Be Offered Again"语法和标点不自然；活动时间格式不统一。', suggestion: 'Available for a limited time only—never to be offered again. 活动时间统一为: August 10, 8:00 PM–August 24, 11:59 PM EDT' },
-  { rule: '文案合规检查', status: 'abnormal', reason: '"Never To Be Offered Again"属于绝对化、强稀缺性宣传；"Gift"和限时活动未清晰说明适用条件。', suggestion: '修改为: Available for a limited time, while supplies last. 并补充: Gift availability and promotional terms may vary.' },
+  { rule: '语言书写错误检查', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '文案合规检查', status: 'normal', reason: '-', suggestion: '-' },
   { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
   { rule: '图片完整性', status: 'normal', reason: '-', suggestion: '-' },
   { rule: '图片质量', status: 'normal', reason: '-', suggestion: '-' },
@@ -331,9 +418,10 @@ const moduleReviewRules: Array<{ rule: string; status: ContentStatus; reason: st
 ];
 
 const categoryReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
-  { rule: '语言书写错误检查', status: 'abnormal', reason: '页面显示"0 Product"，数量为 0 时应使用复数或更自然的表达；"Customize"作为分类名称不够统一。', suggestion: '将 0 Product 修改为 0 Products 或 No Products；将 Customize 修改为 Customization。' },
-  { rule: '文案合规检查', status: 'abnormal', reason: '"Weapon Mounted Lights (WMLs)"直接涉及武器安装和使用场景；"Tactical Flashlights"也带有较强的战术用途表述。', suggestion: '将分类名称改为更中性的：Mountable Lights' },
+  { rule: '语言书写错误检查', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '文案合规检查', status: 'normal', reason: '-', suggestion: '-' },
   { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '排版/布局异常', status: 'normal', reason: '-', suggestion: '-' },
 ];
 
 const pageModuleFieldData: Record<string, Array<{
@@ -349,31 +437,11 @@ const pageModuleFieldData: Record<string, Array<{
     { fieldName: '图片2', mallData: 'https://example.com/carousel2.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
     { fieldName: '图片3', mallData: 'https://example.com/carousel3.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
   ],
-  '轮播图+两图片': [
-    { fieldName: '轮播图', mallData: 'https://example.com/banner.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
-    { fieldName: '图片1', mallData: 'https://example.com/img1.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
-    { fieldName: '图片2', mallData: 'https://example.com/img2.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
-  ],
-  '图文展示': [
-    { fieldName: '标题', mallData: 'Product Highlights', status: 'normal', reason: '-', suggestion: '-' },
-    { fieldName: '正文', mallData: 'Discover our latest collection with enhanced features.', status: 'normal', reason: '-', suggestion: '-' },
-    { fieldName: '图片', mallData: 'https://example.com/text-img.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
-  ],
   '一行四商品': [
     { fieldName: '商品1', mallData: 'SKU-001', status: 'normal', reason: '-', suggestion: '-' },
     { fieldName: '商品2', mallData: 'SKU-002', status: 'normal', reason: '-', suggestion: '-' },
     { fieldName: '商品3', mallData: 'SKU-003', status: 'normal', reason: '-', suggestion: '-' },
     { fieldName: '商品4', mallData: 'SKU-004', status: 'normal', reason: '-', suggestion: '-' },
-  ],
-  '商品多组件模块': [
-    { fieldName: '商品卡片', mallData: 'SKU-005', status: 'normal', reason: '-', suggestion: '-' },
-    { fieldName: '价格标签', mallData: '$29.99', status: 'normal', reason: '-', suggestion: '-' },
-    { fieldName: '购买按钮', mallData: 'Add to Cart', status: 'normal', reason: '-', suggestion: '-' },
-  ],
-  '品质保证': [
-    { fieldName: '标题', mallData: 'Quality Guarantee', status: 'normal', reason: '-', suggestion: '-' },
-    { fieldName: '描述', mallData: 'All products undergo strict quality control.', status: 'normal', reason: '-', suggestion: '-' },
-    { fieldName: '图标', mallData: 'https://example.com/quality-icon.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
   ],
   '网红背书': [
     { fieldName: '网红名称', mallData: '@influencer', status: 'normal', reason: '-', suggestion: '-' },
@@ -390,20 +458,15 @@ const pageModuleFieldData: Record<string, Array<{
     { fieldName: '标题', mallData: 'Flashlight Collection', status: 'normal', reason: '-', suggestion: '-' },
     { fieldName: '链接', mallData: '/category/flashlights', status: 'normal', reason: '-', suggestion: '-' },
   ],
-  '预约有礼': [
-    { fieldName: '活动标题', mallData: 'Sign Up & Get $10 Off', status: 'normal', reason: '-', suggestion: '-' },
-    { fieldName: '活动时间', mallData: '2026-08-01 ~ 2026-08-31', status: 'normal', reason: '-', suggestion: '-' },
-    { fieldName: '优惠码', mallData: 'WELCOME10', status: 'normal', reason: '-', suggestion: '-' },
-  ],
-  '视频直播': [
-    { fieldName: '直播标题', mallData: 'New Product Launch Live', status: 'normal', reason: '-', suggestion: '-' },
-    { fieldName: '直播时间', mallData: '2026-08-20 19:00', status: 'normal', reason: '-', suggestion: '-' },
-    { fieldName: '封面图', mallData: 'https://example.com/live-cover.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
-  ],
   '富文本': [
     { fieldName: '标题', mallData: 'About Our Products', status: 'normal', reason: '-', suggestion: '-' },
     { fieldName: '正文', mallData: 'We are committed to providing high-quality products...', status: 'normal', reason: '-', suggestion: '-' },
     { fieldName: '图片', mallData: 'https://example.com/rich-img.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
+  ],
+  '分类页富文本': [
+    { fieldName: '标题', mallData: 'Category Description', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '正文', mallData: 'Explore our wide range of products organized by category.', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '图片', mallData: 'https://example.com/category-rich-img.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
   ],
   '类别': [
     { fieldName: '类别1', mallData: 'EDC Flashlights', status: 'normal', reason: '-', suggestion: '-' },
@@ -414,6 +477,46 @@ const pageModuleFieldData: Record<string, Array<{
     { fieldName: '商品1', mallData: 'SKU-101', status: 'normal', reason: '-', suggestion: '-' },
     { fieldName: '商品2', mallData: 'SKU-102', status: 'normal', reason: '-', suggestion: '-' },
     { fieldName: '商品3', mallData: 'SKU-103', status: 'normal', reason: '-', suggestion: '-' },
+  ],
+  '一行图片（换行）': [
+    { fieldName: '图片1', mallData: 'https://example.com/row-img1.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
+    { fieldName: '图片2', mallData: 'https://example.com/row-img2.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
+  ],
+  '一图片+两商品': [
+    { fieldName: '图片', mallData: 'https://example.com/banner-plus.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
+    { fieldName: '商品1', mallData: 'SKU-201', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '商品2', mallData: 'SKU-202', status: 'normal', reason: '-', suggestion: '-' },
+  ],
+  '一图片+一商品': [
+    { fieldName: '图片', mallData: 'https://example.com/single-banner.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
+    { fieldName: '商品1', mallData: 'SKU-301', status: 'normal', reason: '-', suggestion: '-' },
+  ],
+  '游戏入口': [
+    { fieldName: '入口图片', mallData: 'https://example.com/game-entry.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
+    { fieldName: '入口标题', mallData: 'Play & Win', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '入口链接', mallData: '/game/spin-to-win', status: 'normal', reason: '-', suggestion: '-' },
+  ],
+  '定位条模块': [
+    { fieldName: '定位标题', mallData: 'Find Your Perfect Light', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '定位选项1', mallData: 'By Activity', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '定位选项2', mallData: 'By Brightness', status: 'normal', reason: '-', suggestion: '-' },
+  ],
+  '主推四款': [
+    { fieldName: '商品1', mallData: 'SKU-401', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '商品2', mallData: 'SKU-402', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '商品3', mallData: 'SKU-403', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '商品4', mallData: 'SKU-404', status: 'normal', reason: '-', suggestion: '-' },
+  ],
+  '九模块': [
+    { fieldName: '模块1', mallData: 'New Arrivals', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '模块2', mallData: 'Best Sellers', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '模块3', mallData: 'On Sale', status: 'normal', reason: '-', suggestion: '-' },
+  ],
+  '新闻资讯': [
+    { fieldName: '新闻标题1', mallData: 'Industry Trends 2026', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '发布日期1', mallData: '2026-08-10', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '新闻标题2', mallData: 'Product Launch Announcement', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '发布日期2', mallData: '2026-08-15', status: 'normal', reason: '-', suggestion: '-' },
   ],
 };
 
@@ -509,15 +612,15 @@ const productDetailSubFields: Record<string, Array<{ fieldName: string; mallData
 };
 
 const productTitleReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
-  { rule: '语言书写错误检查', status: 'abnormal', reason: '① "High Power"作前置定语时建议加连字符；② "Facebook Group Member Exclusive"表达不够自然', suggestion: 'Seeker 4 Pro Phantom Squadron High-Power Flashlight – Exclusive to Facebook Group Members' },
-  { rule: '文案合规检查', status: 'abnormal', reason: '"Facebook Group Member Exclusive"属于受社群资格和兑换码限制的促销表述，需明确限定条件', suggestion: 'Seeker 4 Pro Phantom Squadron High-Power Flashlight – Exclusive Offer for Verified Facebook Group Members' },
+  { rule: '语言书写错误检查', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '文案合规检查', status: 'normal', reason: '-', suggestion: '-' },
   { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
   { rule: '信息正确性审核', status: 'normal', reason: '-', suggestion: '-' },
 ];
 
 const productMainImageReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
   { rule: '图片完整性', status: 'normal', reason: '-', suggestion: '-' },
-  { rule: '图片质量', status: 'abnormal', reason: '图片清晰度和细节辨识度不足，产品边缘及文字信息不够清楚。', suggestion: '更换为高清原图，建议尺寸不低于 2000×2000 像素，提升锐度并减少压缩痕迹。' },
+  { rule: '图片质量', status: 'normal', reason: '-', suggestion: '-' },
   { rule: '图片尺寸比例', status: 'normal', reason: '-', suggestion: '-' },
   { rule: '商品主体展示', status: 'normal', reason: '-', suggestion: '-' },
   { rule: '图片内容合规', status: 'normal', reason: '-', suggestion: '-' },
@@ -548,53 +651,71 @@ const productPriceReviewRules: Array<{ rule: string; status: ContentStatus; reas
 ];
 
 const productReviewReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
-  { rule: '文案合规检查', status: 'abnormal', reason: '客服回复内容包含较强促销与背书用语，如"您最喜欢的"、"耐用性让您印象深刻"，存在夸大评价与主观营销倾向。', suggestion: '感谢您分享使用体验！很高兴得知您对 OSIGHT SE DPP 的耐用性表示满意。如您有其他意见或建议，欢迎随时与我们联系！' },
+  { rule: '文案合规检查', status: 'normal', reason: '-', suggestion: '-' },
   { rule: '图片内容合规', status: 'normal', reason: '-', suggestion: '-' },
 ];
 
 const productDetailReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
-  { rule: '语言书写错误检查', status: 'abnormal', reason: '"in any lighting condition"中"condition"建议使用复数形式"conditions"；"target acquisition"和"follow-up shots"等表达过于专业，语义较强。', suggestion: 'Provides reliable illumination in any lighting conditions. The spacious window offers a clear sight picture for faster and smoother visual tracking.' },
-  { rule: '文案合规检查', status: 'abnormal', reason: '多次出现武器相关术语，如"shooting scenario"、"follow-up shots"、"target acquisition"，存在敏感营销表述。', suggestion: '建议将武器相关术语替换为中性使用场景描述，如"various scenarios"、"continuous observation"、"quick target identification"。' },
-  { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
-  { rule: '图片完整性', status: 'normal', reason: '-', suggestion: '-' },
-  { rule: '图片质量', status: 'normal', reason: '-', suggestion: '-' },
-  { rule: '图片尺寸比例', status: 'normal', reason: '-', suggestion: '-' },
-  { rule: '图片内容合规', status: 'abnormal', reason: '图片中展示枪械携带场景，出现"concealed carry"等武器相关术语，存在敏感内容。', suggestion: '建议移除涉及枪械携带场景的图片，替换为产品单独展示或非敏感使用场景的图片。' },
-];
-
-const productParamsReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
-  { rule: '语言书写错误检查', status: 'abnormal', reason: '"工作温床"存在明显用词错误，应为"工作温度"；"光学材料"与"7075-T6 铝制材质"不匹配；部分单位和字段表达不够统一。', suggestion: '工作温度：-22°F 至 140°F (-30°C 至 60°C)\n尺寸（长×宽×高）：1.83 x 1.12 x 1.11 英寸（46.4 × 28.5 × 28.2 毫米）' },
-  { rule: '文案合规检查', status: 'abnormal', reason: '"隐蔽携带"、"自卫"、"家庭防护"等用途涉及防身及安保场景，存在敏感营销表述。', suggestion: '将用途修改为：日常携带、户外活动、应急照明、维修照明和训练使用。' },
-  { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
-  { rule: '信息正确性检查', status: 'normal', reason: '-', suggestion: '-' },
-];
-
-const productFaqReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
-  { rule: '语言书写错误检查', status: 'abnormal', reason: '部分表达不够自然，如"DPP迹"、"DPP切割滑套"等译法生硬；中英文之间缺少空格；标点格式不统一。', suggestion: '1. 什么是DPP安装规格？\n2. OSIGHT SE DPP是否兼容所有DPP安装规格的平台？' },
-  { rule: '文案合规检查', status: 'abnormal', reason: '"DPP切割滑套"等术语涉及枪械部件改装，可能构成武器改装或使用指导，存在敏感内容风险。', suggestion: '将相关问题修改为更中性的产品兼容性表述，如：OSIGHT SE DPP适用于哪些DPP安装规格？' },
-  { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
-];
-
-const productManualReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
-  { rule: '语言书写错误检查', status: 'abnormal', reason: '文件名中英文混用，产品名称与地区信息连接不清晰，"东南DPP"表达不规范、语义模糊。', suggestion: '将文件名改为标准化格式：OSIGHT SE DPP 用户手册（东南亚地区）.pdf 或 OSIGHT SE DPP User Manual – Southeast Asia.pdf' },
-  { rule: '文案合规检查', status: 'abnormal', reason: '仅凭截图文件名无法确认手册正文内容是否包含敏感或违规内容，需进一步检查 PDF 正文。', suggestion: '保留产品与地区信息，避免在文件名中出现武器使用、改装或攻击性描述，推荐：OSIGHT SE DPP 用户手册（东南亚地区）.pdf' },
-  { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
-];
-
-const productEmailReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
-  { rule: '语言书写错误检查', status: 'abnormal', reason: '重复用词"优惠码九折优惠码"，表达不完整"接收:"，中英文格式不统一。', suggestion: '立即订阅我们的邮件通讯，即可接收：1. 10% 折扣码 2. 50 积分和 50 枚 O 币' },
-  { rule: '文案合规检查', status: 'abnormal', reason: '折扣码适用范围和排除项仅以英文展示；营销邮件的隐私政策和退订方式不明确。', suggestion: '10% 折扣码不适用于 XDR 及促销商品。订阅即表示同意接收营销邮件，您可随时通过邮件底部链接退订。' },
-  { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
-];
-
-const productBlogReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
-  { rule: '语言书写错误检查', status: 'abnormal', reason: '第一条标题中"2026 年级"用词错误；第三条标题中"手电筒闪光灯促销"表达重复且不自然。', suggestion: '1. Olight Seeker 4 Pro Phantom Squadron 评测：2026年 EDC 战术手电筒\n2. 庆祝美国建国 250 周年：Olight 推出 ArkPro Liberty Lines 与 Oknife 联名套装\n使用客观、准确的表达，并明确活动主题：庆祝美国建国 250 周年：Olight 推出 ArkPro Liberty Lines 与 Oknife 联名套装' },
-  { rule: '文案合规检查', status: 'abnormal', reason: '部分标题使用"独家"等促销用语但未明确限定条件；"美国航空 250 周年"等表述可能造成事实或语义误解。', suggestion: '1. Olight Seeker 4 Pro Phantom Squadron 评测：2026年 EDC 战术手电筒\n2. 庆祝美国建国 250 周年：Olight 推出 ArkPro Liberty Lines 与 Oknife 联名套装\n使用客观、准确的表达，并明确活动主题：庆祝美国建国 250 周年：Olight 推出 ArkPro Liberty Lines 与 Oknife 联名套装' },
+  { rule: '语言书写错误检查', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '文案合规检查', status: 'normal', reason: '-', suggestion: '-' },
   { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
   { rule: '图片完整性', status: 'normal', reason: '-', suggestion: '-' },
   { rule: '图片质量', status: 'normal', reason: '-', suggestion: '-' },
   { rule: '图片内容合规', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '模块完整性', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '排版/布局异常', status: 'normal', reason: '-', suggestion: '-' },
 ];
+
+const productParamsReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
+  { rule: '语言书写错误检查', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '文案合规检查', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '信息正确性检查', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '排版/布局异常', status: 'normal', reason: '-', suggestion: '-' },
+];
+
+const productFaqReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
+  { rule: '语言书写错误检查', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '文案合规检查', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '排版/布局异常', status: 'normal', reason: '-', suggestion: '-' },
+];
+
+const productManualReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
+  { rule: '语言书写错误检查', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '文案合规检查', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '排版/布局异常', status: 'normal', reason: '-', suggestion: '-' },
+];
+
+const productEmailReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
+  { rule: '语言书写错误检查', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '文案合规检查', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
+];
+
+const productBlogReviewRules: Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }> = [
+  { rule: '语言书写错误检查', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '文案合规检查', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '本地化合规', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '图片完整性', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '图片质量', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '图片内容合规', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '有效性检查', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '模块完整性', status: 'normal', reason: '-', suggestion: '-' },
+  { rule: '排版/布局异常', status: 'normal', reason: '-', suggestion: '-' },
+];
+
+const subFieldReviewRulesMap: Record<string, Array<{ rule: string; status: ContentStatus; reason: string; suggestion: string }>> = {
+  '价格': productPriceReviewRules,
+  '客户评价': productReviewReviewRules,
+  '产品详情': productDetailReviewRules,
+  '参数细节': productParamsReviewRules,
+  '常见问题解答': productFaqReviewRules,
+  '手册': productManualReviewRules,
+  '博客': productBlogReviewRules,
+  '邮箱地址': productEmailReviewRules,
+};
 
 const productDetailSubFieldData: Record<string, Array<{ fieldName: string; mallData: string; status: ContentStatus; reason: string; suggestion: string }>> = {
   '价格': [
@@ -779,6 +900,10 @@ export default function AuditDataPage() {
         matchStartTime &&
         matchEndTime
       );
+    }).sort((a, b) => {
+      const orderA = pageTypeOrder[a.pageType || ''] ?? 99;
+      const orderB = pageTypeOrder[b.pageType || ''] ?? 99;
+      return orderA - orderB;
     });
   }, [pageKeyword, pageStore, pageStartTime, pageEndTime, pageAuditObjects]);
 
@@ -842,7 +967,7 @@ export default function AuditDataPage() {
   };
 
   const exportPageAuditData = () => {
-    const headers = ['店铺', '页面ID', '页面名称', '页面类别', '开始时间', '结束时间', '页面启用时间'];
+    const headers = ['店铺', '页面ID', '页面名称', '指定页面', '开始时间', '结束时间', '页面启用时间'];
     const rows = filteredPageAuditObjects.map((record) => [
       record.storeName,
       record.pageId || '/',
@@ -1090,7 +1215,46 @@ export default function AuditDataPage() {
         dataIndex: 'contentStatus',
         width: 90,
         align: 'center' as const,
-        render: () => renderContentStatus('normal'),
+        render: () => {
+          const rules = subFieldReviewRulesMap[subName];
+          const abnormalRules = rules?.filter((r) => r.status === 'abnormal') || [];
+          if (abnormalRules.length === 0) {
+            return renderContentStatus('normal');
+          }
+          const config = contentStatusConfig.abnormal;
+          const currentData = productDetailSubFieldData[subName]?.[0]?.mallData || '';
+          return (
+            <Tooltip
+              overlayClassName="failure-tooltip"
+              overlayStyle={{ maxWidth: 240 }}
+              overlayInnerStyle={{ backgroundColor: '#fff', maxHeight: 120, overflowY: 'auto', padding: 6, fontSize: 12 }}
+              title={
+                <div style={{ lineHeight: 1.4, color: '#ff4d4f' }}>
+                  {currentData && (
+                    <div style={{ marginBottom: 1 }}>
+                      <span style={{ fontWeight: 'bold' }}>当前数据：</span>
+                      {currentData}
+                    </div>
+                  )}
+                  {abnormalRules.map((rule, index) => (
+                    <div key={index} style={{ marginBottom: index < abnormalRules.length - 1 ? 6 : 0 }}>
+                      <div style={{ marginBottom: 1 }}>
+                        <span style={{ fontWeight: 'bold' }}>原因：</span>
+                        {rule.reason || '当前字段复核失败'}
+                      </div>
+                      <div>
+                        <span style={{ fontWeight: 'bold' }}>AI建议修改：</span>
+                        {rule.suggestion || '建议检查并修正相关内容'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              }
+            >
+              {config.icon}
+            </Tooltip>
+          );
+        },
         ...(withSeparator && idx === 0
           ? {
               onHeaderCell: () => ({ style: groupSeparatorStyle }),
@@ -1210,7 +1374,7 @@ export default function AuditDataPage() {
             ),
           },
           {
-            title: '页面类别',
+            title: '指定页面',
             dataIndex: 'pageType',
             width: 120,
           },
@@ -1226,19 +1390,41 @@ export default function AuditDataPage() {
           },
         ],
       },
-      ...[
-        '轮播图', '轮播图+两图片', '图文展示', '一行四商品',
-        '商品多组件模块', '品质保证', '网红背书', '博客', '品类页banner',
-        '预约有礼', '视频直播', '富文本',
-        '类别', '商品列表',
-      ].map((moduleName) => ({
-        title: moduleName,
-        dataIndex: 'pageVisualStatus',
-        width: 130,
-        align: 'center' as const,
-        onHeaderCell: () => ({ style: { whiteSpace: 'nowrap' } }),
-        render: () => renderContentStatus('normal'),
-      })),
+      {
+        title: '基础模块',
+        children: [
+          '轮播图', '品类页banner', '一行四商品', '一行图片（换行）', '一图片+两商品', '一图片+一商品', '主推四款', '九模块',
+          '网红背书', '博客', '游戏入口', '定位条模块', '新闻资讯', '富文本',
+        ].map((moduleName) => ({
+          title: moduleName,
+          dataIndex: 'pageVisualStatus',
+          width: 130,
+          align: 'center' as const,
+          onHeaderCell: () => ({ style: { whiteSpace: 'nowrap' } }),
+          render: (_: any, record: AuditObject) => renderPageModuleStatus(moduleName, record),
+        })),
+      },
+      {
+        title: '代码容器',
+        children: [
+          '分类页富文本', '类别', '商品列表',
+        ].map((moduleName, idx) => ({
+          title: moduleName,
+          dataIndex: 'pageVisualStatus',
+          width: 130,
+          align: 'center' as const,
+          onHeaderCell: () => ({
+            style: {
+              whiteSpace: 'nowrap',
+              ...(idx === 0 ? { borderLeft: '2px solid #d9d9d9' } : {}),
+            },
+          }),
+          onCell: () => ({
+            style: idx === 0 ? { borderLeft: '2px solid #d9d9d9' } : {},
+          }),
+          render: (_: any, record: AuditObject) => renderPageModuleStatus(moduleName, record),
+        })),
+      },
       {
         title: '最近复核时间',
         dataIndex: 'latestAuditTime',
@@ -2588,23 +2774,54 @@ export default function AuditDataPage() {
       </Space>
     );
 
-    const renderPageDetailTables = () => (
+    const renderPageDetailTables = (moduleNames: string[]) => {
+      const applicableModules = pageTypeModuleMap[currentPage.pageType || ''] || [];
+      const getRecordStatus = (ruleName: string, defaultStatus: ContentStatus): ContentStatus =>
+        currentPage.pageVisualStatus?.[ruleName as keyof typeof currentPage.pageVisualStatus] || defaultStatus;
+
+      return (
       <>
+        <div style={{ marginBottom: 16 }}>
+          <span style={{ marginRight: 8 }}>复核状态：</span>
+          <Select
+            mode="multiple"
+            value={pageDetailStatusFilter}
+            onChange={(value: ContentStatus[]) => setPageDetailStatusFilter(value)}
+            options={[
+              { label: '复核通过', value: 'normal' },
+              { label: '复核失败', value: 'abnormal' },
+              { label: '未复核', value: 'unknown' },
+              { label: '无需复核', value: 'empty' },
+            ]}
+            style={{ width: 400 }}
+            placeholder="选择复核状态"
+            allowClear
+          />
+        </div>
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
-          {pageModuleFieldNames.map((moduleName) => {
-            if (['轮播图', '轮播图+两图片', '图文展示', '品质保证', '品类页banner', '预约有礼', '视频直播'].includes(moduleName)) {
+          {moduleNames.map((moduleName) => {
+            const isApplicable = applicableModules.includes(moduleName);
+            if (['轮播图', '品类页banner', '一行图片（换行）', '一图片+两商品', '一图片+一商品', '主推四款', '九模块', '网红背书', '游戏入口'].includes(moduleName)) {
               const carouselData = carouselReviewRules.map((r, idx) => {
-                const config = contentStatusConfig[r.status];
+                let status: ContentStatus = isApplicable ? getRecordStatus(r.rule, r.status) : 'empty';
+                let reason = r.reason;
+                let suggestion = r.suggestion;
+                if (isApplicable && moduleName === '轮播图' && r.rule === '语言书写错误检查') {
+                  status = 'abnormal';
+                  reason = '"4次无息60美元付款"语序不完整，金额表达不够统一';
+                  suggestion = '每件商品可抵扣$11.99.支持4期免息分期付款';
+                }
+                const config = contentStatusConfig[status];
                 return {
                   key: `carousel-${idx}`,
                   rule: r.rule,
                   statusLabel: config.label,
                   statusColor: config.color,
-                  itemStatus: r.status,
-                  reason: r.reason,
-                  suggestion: r.suggestion,
+                  itemStatus: status,
+                  reason: status === 'abnormal' ? reason : '-',
+                  suggestion: status === 'abnormal' ? suggestion : '-',
                 };
-              });
+              }).filter((row) => pageDetailStatusFilter.includes(row.itemStatus));
               return (
                 <div key={moduleName}>
                   <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
@@ -2624,19 +2841,20 @@ export default function AuditDataPage() {
                 </div>
               );
             }
-            if (['一行四商品', '商品多组件模块', '网红背书', '博客', '商品列表'].includes(moduleName)) {
+            if (['一行四商品', '博客', '新闻资讯', '商品列表'].includes(moduleName)) {
               const moduleReviewData = moduleReviewRules.map((r, idx) => {
-                const config = contentStatusConfig[r.status];
+                const status: ContentStatus = isApplicable ? getRecordStatus(r.rule, r.status) : 'empty';
+                const config = contentStatusConfig[status];
                 return {
                   key: `module-review-${idx}`,
                   rule: r.rule,
                   statusLabel: config.label,
                   statusColor: config.color,
-                  itemStatus: r.status,
-                  reason: r.reason,
-                  suggestion: r.suggestion,
+                  itemStatus: status,
+                  reason: status === 'abnormal' ? r.reason : '-',
+                  suggestion: status === 'abnormal' ? r.suggestion : '-',
                 };
-              });
+              }).filter((row) => pageDetailStatusFilter.includes(row.itemStatus));
               return (
                 <div key={moduleName}>
                   <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
@@ -2656,19 +2874,20 @@ export default function AuditDataPage() {
                 </div>
               );
             }
-            if (['类别', '富文本'].includes(moduleName)) {
+            if (['类别', '富文本', '分类页富文本', '定位条模块'].includes(moduleName)) {
               const categoryData = categoryReviewRules.map((r, idx) => {
-                const config = contentStatusConfig[r.status];
+                const status: ContentStatus = isApplicable ? getRecordStatus(r.rule, r.status) : 'empty';
+                const config = contentStatusConfig[status];
                 return {
                   key: `category-${idx}`,
                   rule: r.rule,
                   statusLabel: config.label,
                   statusColor: config.color,
-                  itemStatus: r.status,
-                  reason: r.reason,
-                  suggestion: r.suggestion,
+                  itemStatus: status,
+                  reason: status === 'abnormal' ? r.reason : '-',
+                  suggestion: status === 'abnormal' ? r.suggestion : '-',
                 };
-              });
+              }).filter((row) => pageDetailStatusFilter.includes(row.itemStatus));
               return (
                 <div key={moduleName}>
                   <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
@@ -2691,7 +2910,8 @@ export default function AuditDataPage() {
             const moduleData = pageModuleFieldData[moduleName] || [];
             const tableData = moduleData
               .map((row, idx) => {
-                const config = contentStatusConfig[row.status];
+                const status: ContentStatus = isApplicable ? getRecordStatus(row.fieldName, row.status) : 'empty';
+                const config = contentStatusConfig[status];
                 return {
                   key: `${moduleName}-${idx}`,
                   fieldName: row.fieldName,
@@ -2699,11 +2919,12 @@ export default function AuditDataPage() {
                   isImage: row.isImage,
                   statusLabel: config.label,
                   statusColor: config.color,
-                  itemStatus: row.status,
-                  reason: row.reason,
-                  suggestion: row.suggestion,
+                  itemStatus: status,
+                  reason: status === 'abnormal' ? row.reason : '-',
+                  suggestion: status === 'abnormal' ? row.suggestion : '-',
                 };
-              });
+              })
+              .filter((row) => pageDetailStatusFilter.includes(row.itemStatus));
             if (tableData.length === 0) return null;
             return (
               <div key={moduleName}>
@@ -2727,11 +2948,26 @@ export default function AuditDataPage() {
           })}
         </Space>
       </>
-    );
+      );
+    };
 
     return (
       <Card title={cardTitle}>
-        {renderPageDetailTables()}
+        <Tabs
+          defaultActiveKey="基础模块"
+          items={[
+            {
+              key: '基础模块',
+              label: '基础模块',
+              children: renderPageDetailTables(baseModuleNames),
+            },
+            {
+              key: '代码容器',
+              label: '代码容器',
+              children: renderPageDetailTables(codeContainerModuleNames),
+            },
+          ]}
+        />
       </Card>
     );
   }
