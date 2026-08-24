@@ -195,7 +195,7 @@ function renderPageModuleStatus(moduleName: string, record: AuditObject) {
     rules = carouselReviewRules;
   } else if (['一行四商品', '博客', '新闻资讯', '商品列表'].includes(moduleName)) {
     rules = moduleReviewRules;
-  } else if (['类别', '富文本', '分类页富文本', '定位条模块'].includes(moduleName)) {
+  } else if (['商品分类', '富文本', '分类页富文本', '定位条模块'].includes(moduleName)) {
     rules = categoryReviewRules;
   } else {
     return renderContentStatus('normal');
@@ -366,7 +366,7 @@ const pageVisualSubFields: Record<string, Array<{ moduleName?: string; fieldName
 
 const pageModuleFieldNames = [
   '轮播图', '品类页banner', '一行四商品', '一行图片（换行）', '一图片+两商品', '一图片+一商品', '主推四款', '九模块',
-  '网红背书', '博客', '游戏入口', '定位条模块', '新闻资讯', '富文本', '分类页富文本', '类别', '商品列表',
+  '网红背书', '博客', '游戏入口', '定位条模块', '新闻资讯', '富文本', '分类页富文本', '商品分类', '商品列表',
 ];
 
 const baseModuleNames = [
@@ -375,14 +375,14 @@ const baseModuleNames = [
 ];
 
 const codeContainerModuleNames = [
-  '分类页富文本', '类别', '商品列表',
+  '分类页富文本', '商品分类', '商品列表',
 ];
 
 const pageTypeModuleMap: Record<string, string[]> = {
   '商城首页': ['轮播图', '一行图片（换行）', '一图片+两商品', '一图片+一商品', '一行四商品', '游戏入口', '网红背书', '博客', '富文本'],
   '专题页': ['轮播图', '定位条模块', '一行四商品', '品类页banner'],
   '官网首页': ['轮播图', '主推四款', '九模块', '网红背书', '博客', '新闻资讯'],
-  '分类页': ['分类页富文本', '类别', '商品列表'],
+  '分类页': ['分类页富文本', '商品分类', '商品列表'],
 };
 
 const pageTypeOrder: Record<string, number> = {
@@ -468,10 +468,10 @@ const pageModuleFieldData: Record<string, Array<{
     { fieldName: '正文', mallData: 'Explore our wide range of products organized by category.', status: 'normal', reason: '-', suggestion: '-' },
     { fieldName: '图片', mallData: 'https://example.com/category-rich-img.jpg', status: 'normal', reason: '-', suggestion: '-', isImage: true },
   ],
-  '类别': [
-    { fieldName: '类别1', mallData: 'EDC Flashlights', status: 'normal', reason: '-', suggestion: '-' },
-    { fieldName: '类别2', mallData: 'Tactical Lights', status: 'normal', reason: '-', suggestion: '-' },
-    { fieldName: '类别3', mallData: 'Headlamps', status: 'normal', reason: '-', suggestion: '-' },
+  '商品分类': [
+    { fieldName: '商品分类1', mallData: 'EDC Flashlights', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '商品分类2', mallData: 'Tactical Lights', status: 'normal', reason: '-', suggestion: '-' },
+    { fieldName: '商品分类3', mallData: 'Headlamps', status: 'normal', reason: '-', suggestion: '-' },
   ],
   '商品列表': [
     { fieldName: '商品1', mallData: 'SKU-101', status: 'normal', reason: '-', suggestion: '-' },
@@ -1397,7 +1397,7 @@ export default function AuditDataPage() {
       {
         title: '代码容器',
         children: [
-          '分类页富文本', '类别', '商品列表',
+          '分类页富文本', '商品分类', '商品列表',
         ].map((moduleName, idx) => ({
           title: moduleName,
           dataIndex: 'pageVisualStatus',
@@ -2784,7 +2784,7 @@ export default function AuditDataPage() {
                 </div>
               );
             }
-            if (['类别', '富文本', '分类页富文本', '定位条模块'].includes(moduleName)) {
+            if (['商品分类', '富文本', '分类页富文本', '定位条模块'].includes(moduleName)) {
               const categoryData = categoryReviewRules.map((r, idx) => {
                 const status: ContentStatus = isApplicable ? getRecordStatus(r.rule, r.status) : 'empty';
                 const config = contentStatusConfig[status];
