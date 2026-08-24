@@ -39,7 +39,6 @@ export const imageRuleConfigData: RuleConfigData = {
     { title: 'PC标准尺寸(px)', dataIndex: 'pcSize', width: 220 },
     { title: 'Mobile标准尺寸(px)', dataIndex: 'mobileSize', width: 220 },
     { title: 'APP标准尺寸(px)', dataIndex: 'appSize', width: 220 },
-    { title: '标准比例', dataIndex: 'ratio', width: 220 },
     { title: '允许误差', dataIndex: 'allowedError', width: 200 },
     { title: '更新时间', dataIndex: 'updateTime', width: 170 },
     { title: '更新人', dataIndex: 'updater', width: 120 },
