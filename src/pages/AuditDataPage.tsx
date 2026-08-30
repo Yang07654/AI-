@@ -3178,8 +3178,8 @@ export default function AuditDataPage() {
                 activeTab === 'product-visual-audit'
                   ? [
                       ...productContentFields.filter((f) => f.key !== 'productDetail' && f.key !== 'productSkuDetail').map((field) => ({ label: field.name, value: field.name })),
-                      ...productDetailSubFieldNames.map((name) => ({ label: `商品详情 - ${name}`, value: `商品详情 - ${name}` })),
-                      ...productDetailSubFieldNames.map((name) => ({ label: `商品SKU详情 - ${name}`, value: `商品SKU详情 - ${name}` })),
+                      ...productDetailSubFieldNames.map((name) => ({ label: `${name}(商品详情)`, value: `${name}(商品详情)` })),
+                      ...productDetailSubFieldNames.map((name) => ({ label: `${name}(商品SKU详情)`, value: `${name}(商品SKU详情)` })),
                     ]
                   : [...baseModuleNames, ...codeContainerModuleNames].map((type) => ({ label: type, value: type }))
               }
