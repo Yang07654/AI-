@@ -3176,8 +3176,12 @@ export default function AuditDataPage() {
               placeholder="请选择复核事项"
               options={
                 activeTab === 'product-visual-audit'
-                  ? productContentFields.map((field) => ({ label: field.name, value: field.name }))
-                  : pageVisualCheckTypes.map((type) => ({ label: type, value: type }))
+                  ? [
+                      ...productContentFields.filter((f) => f.key !== 'productDetail' && f.key !== 'productSkuDetail').map((field) => ({ label: field.name, value: field.name })),
+                      ...productDetailSubFieldNames.map((name) => ({ label: `商品详情 - ${name}`, value: `商品详情 - ${name}` })),
+                      ...productDetailSubFieldNames.map((name) => ({ label: `商品SKU详情 - ${name}`, value: `商品SKU详情 - ${name}` })),
+                    ]
+                  : [...baseModuleNames, ...codeContainerModuleNames].map((type) => ({ label: type, value: type }))
               }
               style={{ width: '100%' }}
             />
