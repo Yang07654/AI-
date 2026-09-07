@@ -2,7 +2,7 @@ import { ArrowLeftOutlined, CheckCircleFilled, CloseOutlined, CopyOutlined, Minu
 import { Button, Card, Collapse, DatePicker, Divider, Dropdown, Form, Input, Modal, Select, Space, Table, Tabs, Tag, Tooltip, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { Key, ReactNode } from 'react';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { auditObjects, auditTypes, pageVisualCheckTypes, type AuditObject, type AuditStatus, type AssociationType, type AuditType, type ContentStatus, type ObjectType, type RiskItem, type RiskLevel } from '../mock/auditData';
 import { logRecords, type LogRecord, type LogReviewStatus, type PushStatus } from '../mock/logData';
 import dayjs from 'dayjs';
@@ -822,15 +822,21 @@ export default function AuditDataPage() {
   const [logReviewStatus, setLogReviewStatus] = useState<string>();
   const [reviewModalVisible, setReviewModalVisible] = useState(false);
   const [reviewRecord, setReviewRecord] = useState<AuditObject | null>(null);
-  const [reviewItem, setReviewItem] = useState<string[]>();
   const [activeTab, setActiveTab] = useState('product-visual-audit');
   const [logViewTab, setLogViewTab] = useState<'product' | 'page'>('product');
   const [productDetailStatusFilter, setProductDetailStatusFilter] = useState<ContentStatus[]>(['abnormal', 'unknown', 'empty']);
   const [pageDetailStatusFilter, setPageDetailStatusFilter] = useState<ContentStatus[]>(['normal', 'abnormal', 'unknown', 'empty']);
+  const [batchReviewVisible, setBatchReviewVisible] = useState(false);
+  const [batchReviewStore, setBatchReviewStore] = useState<string>();
+  const [batchReviewProductType, setBatchReviewProductType] = useState<string>();
+  const [batchReviewPlan, setBatchReviewPlan] = useState<string>();
+  const [batchReviewSkuId, setBatchReviewSkuId] = useState<string>();
+  const [batchReviewPageId, setBatchReviewPageId] = useState<string>('');
 
   const productAuditObjects = useMemo(() => auditObjects.filter((item) => item.type === '商品'), []);
   const pageAuditObjects = useMemo(() => auditObjects.filter((item) => item.type === '页面'), []);
   const marketingPlanOptions = useMemo(() => [...new Set(productAuditObjects.map((item) => item.marketingPlan))], [productAuditObjects]);
+  const pageMarketingPlanOptions = useMemo(() => [...new Set(pageAuditObjects.map((item) => item.marketingPlan))], [pageAuditObjects]);
   const productCategoryOptions = useMemo(() => [...new Set(productAuditObjects.map((item) => item.productCategory))], [productAuditObjects]);
   const pageStoreOptions = useMemo(() => [...new Set(pageAuditObjects.map((item) => item.storeName.split('\n').pop() || ''))], [pageAuditObjects]);
   const detailFieldNameFilters = useMemo(() => {
@@ -910,22 +916,48 @@ export default function AuditDataPage() {
     });
   }, [currentLogRecord, logTraceId, logPushStatus, logReviewStatus]);
 
+  const batchReviewClearRef = useRef<(() => void) | null>(null);
+  const batchReviewKeysRef = useRef<Key[]>([]);
+
   const runBatchReview = (keys: Key[], clear: () => void) => {
     if (!keys.length) {
       message.warning('请先勾选需要复核的数据');
       return;
     }
+    batchReviewKeysRef.current = keys;
+    batchReviewClearRef.current = clear;
+    setBatchReviewStore(undefined);
+    setBatchReviewProductType(undefined);
+    setBatchReviewPlan(undefined);
+    setBatchReviewSkuId(undefined);
+    setBatchReviewPageId('');
+    setBatchReviewVisible(true);
+  };
 
-    Modal.confirm({
-      title: '确认一键复核？',
-      content: `已选择 ${keys.length} 条数据，确认提交复核吗？`,
-      okText: '确认复核',
-      cancelText: '取消',
-      onOk: () => {
-        message.success(`已提交 ${keys.length} 条数据进行一键复核`);
-        clear();
-      },
-    });
+  const handleBatchReviewConfirm = () => {
+    if (activeTab === 'product-visual-audit') {
+      if (!batchReviewStore) {
+        message.warning('请选择店铺名称');
+        return;
+      }
+      if (!batchReviewPlan) {
+        message.warning('请选择营销方案');
+        return;
+      }
+    } else {
+      if (!batchReviewStore) {
+        message.warning('请选择店铺名称');
+        return;
+      }
+      if (!batchReviewPlan) {
+        message.warning('请选择营销方案');
+        return;
+      }
+    }
+    const keys = batchReviewKeysRef.current;
+    message.success(`已提交 ${keys.length} 条数据进行一键复核`);
+    batchReviewClearRef.current?.();
+    setBatchReviewVisible(false);
   };
 
   const exportAuditData = () => {
@@ -1542,19 +1574,13 @@ export default function AuditDataPage() {
 
   const openReviewModal = (record: AuditObject) => {
     setReviewRecord(record);
-    setReviewItem(undefined);
     setReviewModalVisible(true);
   };
 
   const handleReviewConfirm = () => {
-    if (!reviewItem || reviewItem.length === 0) {
-      message.warning('请选择复核事项');
-      return;
-    }
-    message.success(`已提交「${reviewRecord?.name}」重新复核，复核事项：${reviewItem.join('、')}`);
+    message.success(`已提交「${reviewRecord?.name}」重新复核`);
     setReviewModalVisible(false);
     setReviewRecord(null);
-    setReviewItem(undefined);
   };
 
   const logColumns: ColumnsType<LogRecord> = [
@@ -3152,13 +3178,11 @@ export default function AuditDataPage() {
         onCancel={() => {
           setReviewModalVisible(false);
           setReviewRecord(null);
-          setReviewItem(undefined);
         }}
         footer={[
           <Button key="cancel" onClick={() => {
             setReviewModalVisible(false);
             setReviewRecord(null);
-            setReviewItem(undefined);
           }}>
             取消
           </Button>,
@@ -3168,24 +3192,84 @@ export default function AuditDataPage() {
         ]}
       >
         <Form layout="vertical">
-          <Form.Item label="复核事项" required>
+        </Form>
+      </Modal>
+      <Modal
+        title="一键复核"
+        open={batchReviewVisible}
+        onCancel={() => setBatchReviewVisible(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setBatchReviewVisible(false)}>
+            取消
+          </Button>,
+          <Button key="confirm" type="primary" onClick={handleBatchReviewConfirm}>
+            确定
+          </Button>,
+        ]}
+      >
+        <Form layout="vertical">
+          <Form.Item label="店铺名称" required>
             <Select
-              mode="multiple"
-              value={reviewItem}
-              onChange={setReviewItem}
-              placeholder="请选择复核事项"
-              options={
-                activeTab === 'product-visual-audit'
-                  ? [
-                      ...productContentFields.filter((f) => f.key !== 'productDetail' && f.key !== 'productSkuDetail').map((field) => ({ label: field.name, value: field.name })),
-                      ...productDetailSubFieldNames.map((name) => ({ label: `${name}(商品详情)`, value: `${name}(商品详情)` })),
-                      ...productDetailSubFieldNames.map((name) => ({ label: `${name}(商品SKU详情)`, value: `${name}(商品SKU详情)` })),
-                    ]
-                  : [...baseModuleNames, ...codeContainerModuleNames].map((type) => ({ label: type, value: type }))
-              }
+              value={batchReviewStore}
+              onChange={setBatchReviewStore}
+              placeholder="请选择店铺名称"
+              options={(activeTab === 'product-visual-audit' ? storeOptions : pageStoreOptions).map((value) => ({ label: value, value }))}
               style={{ width: '100%' }}
             />
           </Form.Item>
+          {activeTab === 'product-visual-audit' ? (
+            <>
+              <Form.Item label="商品类型">
+                <Select
+                  allowClear
+                  value={batchReviewProductType}
+                  onChange={setBatchReviewProductType}
+                  placeholder="请选择商品类型"
+                  options={productCategoryOptions.map((value) => ({ label: value, value }))}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+              <Form.Item label="营销方案" required>
+                <Select
+                  value={batchReviewPlan}
+                  onChange={setBatchReviewPlan}
+                  placeholder="请选择营销方案"
+                  options={marketingPlanOptions.map((value) => ({ label: value, value }))}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+              <Form.Item label="SKU集商品ID">
+                <Select
+                  allowClear
+                  showSearch
+                  value={batchReviewSkuId}
+                  onChange={setBatchReviewSkuId}
+                  placeholder="请选择SKU集商品ID"
+                  options={[...new Set(productAuditObjects.map((item) => item.skuProductId))].map((value) => ({ label: value, value }))}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+            </>
+          ) : (
+            <>
+              <Form.Item label="营销方案" required>
+                <Select
+                  value={batchReviewPlan}
+                  onChange={setBatchReviewPlan}
+                  placeholder="请选择营销方案"
+                  options={pageMarketingPlanOptions.map((value) => ({ label: value, value }))}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+              <Form.Item label="页面ID">
+                <Input
+                  value={batchReviewPageId}
+                  onChange={(e) => setBatchReviewPageId(e.target.value)}
+                  placeholder="请输入页面ID"
+                />
+              </Form.Item>
+            </>
+          )}
         </Form>
       </Modal>
     </>
