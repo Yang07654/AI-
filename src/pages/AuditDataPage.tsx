@@ -941,7 +941,7 @@ export default function AuditDataPage() {
         return;
       }
       if (!batchReviewPlan) {
-        message.warning('请选择营销方案');
+        message.warning('请选择年月');
         return;
       }
     } else {
@@ -950,7 +950,7 @@ export default function AuditDataPage() {
         return;
       }
       if (!batchReviewPlan) {
-        message.warning('请选择营销方案');
+        message.warning('请选择年月');
         return;
       }
     }
@@ -3229,22 +3229,22 @@ export default function AuditDataPage() {
                   style={{ width: '100%' }}
                 />
               </Form.Item>
-              <Form.Item label="营销方案" required>
+              <Form.Item label="年月" required>
                 <Select
                   value={batchReviewPlan}
                   onChange={setBatchReviewPlan}
-                  placeholder="请选择营销方案"
+                  placeholder="请选择年月"
                   options={marketingPlanOptions.map((value) => ({ label: value, value }))}
                   style={{ width: '100%' }}
                 />
               </Form.Item>
-              <Form.Item label="SKU集商品ID">
+              <Form.Item label="OMALL商品ID">
                 <Select
                   allowClear
                   showSearch
                   value={batchReviewSkuId}
                   onChange={setBatchReviewSkuId}
-                  placeholder="请选择SKU集商品ID"
+                  placeholder="请选择OMALL商品ID"
                   options={[...new Set(productAuditObjects.map((item) => item.skuProductId))].map((value) => ({ label: value, value }))}
                   style={{ width: '100%' }}
                 />
@@ -3252,11 +3252,11 @@ export default function AuditDataPage() {
             </>
           ) : (
             <>
-              <Form.Item label="营销方案" required>
+              <Form.Item label="年月" required>
                 <Select
                   value={batchReviewPlan}
                   onChange={setBatchReviewPlan}
-                  placeholder="请选择营销方案"
+                  placeholder="请选择年月"
                   options={pageMarketingPlanOptions.map((value) => ({ label: value, value }))}
                   style={{ width: '100%' }}
                 />
